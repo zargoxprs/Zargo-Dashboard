@@ -109,6 +109,113 @@ export interface ApiError {
   status?: number;
 }
 
+export type LeadStage = "new" | "contacted" | "qualified" | "converted" | "lost";
+
+export interface Lead {
+  id: string;
+  customerName: string;
+  contact: string;
+  source: string;
+  stage: LeadStage;
+  assignedTo: string;
+  createdAt: string;
+}
+
+export interface OnboardingWorkflow {
+  id: string;
+  vehicleId: string;
+  model: string;
+  hub: string;
+  assignedTo: string;
+  stage: "assigned" | "pdi" | "odometer" | "photos" | "submitted" | "approval" | "available";
+  checklist: { label: string; done: boolean }[];
+  odometerPhotoRequired: boolean;
+  photosRequired: boolean;
+  status: string;
+  createdAt: string;
+}
+
+export interface RenewalTask {
+  id: string;
+  customer: string;
+  vehicleModel: string;
+  dueDate: string;
+  status: "due" | "upcoming" | "overdue";
+  assignedTo: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface RecoveryCase {
+  id: string;
+  customer: string;
+  vehicleModel: string;
+  overdueBy: string;
+  status: "open" | "contacted" | "recovered" | "escalated";
+  assignedTo: string;
+  createdAt: string;
+}
+
+export interface ReturnWorkflow {
+  id: string;
+  bookingId: string;
+  vehicle: string;
+  returnOdometer: number | null;
+  photosSubmitted: boolean;
+  pdiChecklistCompleted: boolean;
+  refundRequested: boolean;
+  refundApproved: boolean;
+  accountClosed: boolean;
+  status: "pending-return" | "in-review" | "refund-requested" | "closed";
+  assignedTo: string;
+  createdAt: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  customer: string;
+  type: "rental" | "security-deposit" | "refund";
+  amount: number;
+  dueDate: string;
+  status: "paid" | "pending" | "refunded";
+  assignedTo: string;
+  createdAt: string;
+}
+
+export interface InsuranceCase {
+  id: string;
+  policyNumber: string;
+  vehicle: string;
+  type: "policy" | "claim";
+  status: "active" | "expiring" | "claimed" | "closed";
+  premium: number;
+  renewalDate: string;
+  assignedTo: string;
+  createdAt: string;
+}
+
+export interface ServiceJobCard {
+  id: string;
+  vehicle: string;
+  jobType: string;
+  assignedTo: string;
+  status: "scheduled" | "in-progress" | "completed" | "inspection";
+  priority: "low" | "medium" | "high";
+  reportedIssue: string;
+  createdAt: string;
+}
+
+export interface WorkflowTask {
+  id: string;
+  title: string;
+  description: string;
+  module: "Onboarding" | "Returns" | "Service" | "Insurance" | "Renewals" | "Recovery";
+  assignedTo: string;
+  dueDate: string;
+  status: "assigned" | "in-progress" | "awaiting-approval" | "completed";
+  createdAt: string;
+}
+
 export interface AsyncState<T> {
   data: T | undefined;
   isLoading: boolean;

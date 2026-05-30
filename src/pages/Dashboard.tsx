@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
-import { Bike, CalendarDays, Battery, Bell, AlertTriangle, Zap, Users, Plus, FileCheck, BellPlus, Activity, Wrench, CreditCard, Repeat } from "lucide-react";
+import { Bike, CalendarDays, Battery, Bell, AlertTriangle, Zap, Users, Plus, FileCheck, BellPlus, Activity, Wrench, CreditCard, Repeat, ShieldCheck, ArrowLeftRight } from "lucide-react";
 import RupeeIcon from "@/components/ui/icons/RupeeIcon";
 import { useAuth } from "@/context/AuthContext";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -9,6 +9,7 @@ import { useStore } from "@/data/store";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useBookings } from "@/hooks/useBookings";
 import { useAlerts } from "@/hooks/useAlerts";
+import { leads, renewals, recoveries, returns as returnWorkflows, payments, insurances, serviceJobs } from "@/data/workflows";
 import { StatCardsSkeleton, TableSkeleton } from "@/components/states/LoadingSkeleton";
 import { ErrorState } from "@/components/states/ErrorState";
 
@@ -82,7 +83,7 @@ const Dashboard = () => {
           <StatCard title="Total Vehicles" value={stats.totalVehicles} icon={Bike} subtitle="+2 added this month" />
           <StatCard title="Available" value={stats.availableVehicles} icon={Battery} accent="success" subtitle="Ready to deploy" />
           <StatCard title="Rented" value={stats.deployedVehicles} icon={CalendarDays} accent="primary" subtitle="Currently rented" />
-          <StatCard title="Service / Maintenance" value={stats.overdueVehicles} icon={Wrench} accent="accent" subtitle="Needs service attention" />
+          <StatCard title="Pending Returns" value={returnWorkflows.filter((r) => !r.accountClosed).length} icon={ArrowLeftRight} accent="accent" subtitle="Awaiting review" />
         </div>
       )}
 
@@ -109,6 +110,8 @@ const Dashboard = () => {
             <StatCard title="Recovery Cases" value={stats?.overdueVehicles ?? 0} icon={AlertTriangle} accent="destructive" subtitle="Overdue recoveries" />
             <StatCard title="Service Requests" value={alerts.filter((a) => a.severity === "warning" || a.severity === "critical").length} icon={Wrench} accent="accent" subtitle="Open requests" />
             <StatCard title="Staff Performance" value={employees.length ? Math.round((employees.reduce((s, e) => s + getEmployeeOnboards(e), 0) / employees.length) * 10) / 10 : 0} icon={Users} accent="success" subtitle="Avg onboards" />
+          <StatCard title="Renewal Tasks" value={renewals.length} icon={Repeat} accent="warning" subtitle="Due and overdue" />
+          <StatCard title="Recovery Cases" value={recoveries.length} icon={AlertTriangle} accent="destructive" subtitle="Overdue triggers" />
           </div>
         </div>
       )}

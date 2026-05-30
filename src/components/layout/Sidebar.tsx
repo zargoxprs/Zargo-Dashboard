@@ -1,13 +1,22 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Bike, CalendarDays, Bell, Users, BarChart3, LogOut } from "lucide-react";
+import { LayoutDashboard, Bike, CalendarDays, Bell, Users, BarChart3, LogOut, FileCheck, RefreshCcw, AlertTriangle, ArrowLeftRight, CreditCard, ShieldCheck, Wrench, ClipboardList } from "lucide-react";
 import zargoLogo from "@/assets/zargo-logo.png";
 import { useAuth } from "@/context/AuthContext";
 
 const allLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/vehicles", label: "Vehicles", icon: Bike },
-  { to: "/bookings", label: "Bookings", icon: CalendarDays },
+  { to: "/leads", label: "Leads", icon: Users, adminOnly: true },
+  { to: "/onboarding", label: "Onboarding", icon: FileCheck, adminOnly: true },
+  { to: "/renewals", label: "Renewals", icon: RefreshCcw, adminOnly: true },
+  { to: "/recovery", label: "Recovery", icon: AlertTriangle, adminOnly: true },
+  { to: "/returns", label: "Returns", icon: ArrowLeftRight, adminOnly: true },
+  { to: "/payments", label: "Payments", icon: CreditCard, adminOnly: true },
+  { to: "/insurance", label: "Insurance", icon: ShieldCheck, adminOnly: true },
+  { to: "/service-job-cards", label: "Service Job Cards", icon: Wrench, adminOnly: true },
+  { to: "/vehicles", label: "Vehicles", icon: Bike, adminOnly: true },
+  { to: "/bookings", label: "Bookings", icon: CalendarDays, adminOnly: true },
   { to: "/alerts", label: "Alerts", icon: Bell },
+  { to: "/tasks", label: "Tasks", icon: ClipboardList, staffOnly: true },
   { to: "/employees", label: "Employees", icon: Users, adminOnly: true },
   { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
 ];
@@ -15,7 +24,10 @@ const allLinks = [
 const Sidebar = () => {
   const navigate = useNavigate();
   const { role, logout } = useAuth();
-  const links = allLinks.filter((l) => !l.adminOnly || role === "admin");
+  const links = allLinks.filter((l) => {
+    if (role === "staff") return !l.adminOnly && (l.staffOnly ? true : l.to === "/alerts" || l.to === "/tasks" || l.to === "/");
+    return !l.staffOnly;
+  });
 
   const handleLogout = async () => {
     await logout();
