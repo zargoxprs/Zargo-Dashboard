@@ -18,6 +18,8 @@ import {
   Wrench,
   ClipboardList,
   ChevronDown,
+  Phone,
+  FileText,
 } from "lucide-react";
 import zargoLogo from "@/assets/zargo-logo.png";
 import { useAuth } from "@/context/AuthContext";
@@ -59,6 +61,15 @@ const sidebarGroups: SidebarGroup[] = [
     items: [
       { to: "/service-job-cards", label: "Service Jobs", icon: Wrench, roles: ["admin", "staff"] },
       { to: "/insurance", label: "Insurance", icon: ShieldCheck, roles: ["admin"] },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { to: "/crm", label: "CRM Dashboard", icon: Bell, roles: ["admin", "staff"] },
+      { to: "/crm/follow-ups", label: "Follow Ups", icon: Phone, roles: ["admin", "staff"] },
+      { to: "/crm/customer-history", label: "Customer History", icon: FileText, roles: ["admin", "staff"] },
+      { to: "/crm/recovery-queue", label: "Recovery Queue", icon: ShieldCheck, roles: ["admin", "staff"] },
     ],
   },
   {

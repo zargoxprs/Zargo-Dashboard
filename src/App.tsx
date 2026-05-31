@@ -23,6 +23,10 @@ import ChangePassword from "@/pages/ChangePassword";
 import ReportsPage from "@/pages/ReportsPage";
 import SecurityDepositsPage from "@/pages/SecurityDepositsPage";
 import VehicleHandoverPage from "@/pages/VehicleHandoverPage";
+import CrmDashboardPage from "@/pages/CrmDashboardPage";
+import CrmFollowUpCenterPage from "@/pages/CrmFollowUpCenterPage";
+import CrmCustomerTimelinePage from "@/pages/CrmCustomerTimelinePage";
+import CrmRecoveryQueuePage from "@/pages/CrmRecoveryQueuePage";
 import SettingsPage from "@/pages/SettingsPage";
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "@/pages/NotFound";
@@ -57,6 +61,10 @@ const App = () => (
                 <Route path="/renewals" element={<RenewalsPage />} />
                 <Route path="/returns" element={<ReturnsPage />} />
                 <Route path="/service-job-cards" element={<ServiceJobCardsPage />} />
+                <Route path="/crm" element={<CrmDashboardPage />} />
+                <Route path="/crm/follow-ups" element={<CrmFollowUpCenterPage />} />
+                <Route path="/crm/customer-history" element={<CrmCustomerTimelinePage />} />
+                <Route path="/crm/recovery-queue" element={<CrmRecoveryQueuePage />} />
                 <Route path="/vehicle-handover" element={<ProtectedRoute requiredRole="admin"><VehicleHandoverPage /></ProtectedRoute>} />
                 <Route path="/tasks" element={<ProtectedRoute requiredRole="staff"><TasksPage /></ProtectedRoute>} />
                 <Route path="/employees" element={<ProtectedRoute requiredRole="admin"><EmployeesPage /></ProtectedRoute>} />
