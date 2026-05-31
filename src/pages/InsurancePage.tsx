@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ShieldCheck, ShieldAlert, CalendarDays } from "lucide-react";
 import { insurances } from "@/data/workflows";
-import { StatusBadge } from "@/components/StatusBadge";
+import StatusBadge from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
 
 const InsurancePage = () => {

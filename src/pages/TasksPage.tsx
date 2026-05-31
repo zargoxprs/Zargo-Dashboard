@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { workflowTasks } from "@/data/workflows";
-import { StatusBadge } from "@/components/StatusBadge";
+import StatusBadge from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
 import { Briefcase, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 

@@ -4,7 +4,7 @@ import { leads } from "@/data/workflows";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/StatusBadge";
+import StatusBadge from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
 import { TableSkeleton } from "@/components/states/LoadingSkeleton";
 

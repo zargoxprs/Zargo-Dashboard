@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { RefreshCcw, CalendarCheck, AlertTriangle } from "lucide-react";
 import { renewals } from "@/data/workflows";
-import { StatusBadge } from "@/components/StatusBadge";
+import StatusBadge from "@/components/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/states/EmptyState";
 
