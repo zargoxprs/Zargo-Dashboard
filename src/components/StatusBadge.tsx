@@ -17,7 +17,7 @@ const colorMap: Record<string, string> = {
   read: "bg-muted text-muted-foreground",
 };
 
-const StatusBadge = ({ status }: { status: string }) => (
+export const StatusBadge = ({ status }: { status: string }) => (
   <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize", colorMap[status] || "bg-muted text-muted-foreground")}>
     {status}
   </span>

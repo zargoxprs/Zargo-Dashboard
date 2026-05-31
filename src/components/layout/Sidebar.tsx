@@ -1,62 +1,189 @@
+import { useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Bike, CalendarDays, Bell, Users, BarChart3, LogOut, FileCheck, RefreshCcw, AlertTriangle, ArrowLeftRight, CreditCard, ShieldCheck, Wrench, ClipboardList } from "lucide-react";
+import {
+  type LucideIcon,
+  LayoutDashboard,
+  Bike,
+  CalendarDays,
+  Bell,
+  Users,
+  BarChart3,
+  LogOut,
+  FileCheck,
+  RefreshCcw,
+  AlertTriangle,
+  ArrowLeftRight,
+  CreditCard,
+  ShieldCheck,
+  Wrench,
+  ClipboardList,
+  ChevronDown,
+} from "lucide-react";
 import zargoLogo from "@/assets/zargo-logo.png";
 import { useAuth } from "@/context/AuthContext";
+import type { UserRole } from "@/types";
 
-const allLinks = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/leads", label: "Leads", icon: Users, adminOnly: true },
-  { to: "/onboarding", label: "Onboarding", icon: FileCheck, adminOnly: true },
-  { to: "/renewals", label: "Renewals", icon: RefreshCcw, adminOnly: true },
-  { to: "/recovery", label: "Recovery", icon: AlertTriangle, adminOnly: true },
-  { to: "/returns", label: "Returns", icon: ArrowLeftRight, adminOnly: true },
-  { to: "/payments", label: "Payments", icon: CreditCard, adminOnly: true },
-  { to: "/insurance", label: "Insurance", icon: ShieldCheck, adminOnly: true },
-  { to: "/service-job-cards", label: "Service Job Cards", icon: Wrench, adminOnly: true },
-  { to: "/vehicles", label: "Vehicles", icon: Bike, adminOnly: true },
-  { to: "/bookings", label: "Bookings", icon: CalendarDays, adminOnly: true },
-  { to: "/alerts", label: "Alerts", icon: Bell },
-  { to: "/tasks", label: "Tasks", icon: ClipboardList, staffOnly: true },
-  { to: "/employees", label: "Employees", icon: Users, adminOnly: true },
-  { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
+type SidebarLink = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  roles: UserRole[];
+};
+
+type SidebarGroup = {
+  label: string;
+  items: SidebarLink[];
+};
+
+const sidebarGroups: SidebarGroup[] = [
+  {
+    label: "Fleet Operations",
+    items: [
+      { to: "/leads", label: "Leads", icon: Users, roles: ["admin", "staff"] },
+      { to: "/onboarding", label: "Onboarding", icon: FileCheck, roles: ["admin", "staff"] },
+      { to: "/vehicles", label: "Vehicles", icon: Bike, roles: ["admin", "staff"] },
+      { to: "/bookings", label: "Bookings", icon: CalendarDays, roles: ["admin", "staff"] },
+      { to: "/vehicle-handover", label: "Vehicle Handover", icon: ArrowLeftRight, roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Rental Lifecycle",
+    items: [
+      { to: "/renewals", label: "Renewals", icon: RefreshCcw, roles: ["admin", "staff"] },
+      { to: "/returns", label: "Returns", icon: ArrowLeftRight, roles: ["admin", "staff"] },
+      { to: "/recovery", label: "Recovery", icon: AlertTriangle, roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Support",
+    items: [
+      { to: "/service-job-cards", label: "Service Jobs", icon: Wrench, roles: ["admin", "staff"] },
+      { to: "/insurance", label: "Insurance", icon: ShieldCheck, roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { to: "/payments", label: "Payments", icon: CreditCard, roles: ["admin"] },
+      { to: "/employees", label: "Employees", icon: Users, roles: ["admin"] },
+      { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin"] },
+      { to: "/alerts", label: "Alerts", icon: Bell, roles: ["admin", "staff"] },
+    ],
+  },
+];
+
+const standaloneLinks: SidebarLink[] = [
+  { to: "/tasks", label: "My Tasks", icon: ClipboardList, roles: ["staff"] },
 ];
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const { role, logout } = useAuth();
-  const links = allLinks.filter((l) => {
-    if (role === "staff") return !l.adminOnly && (l.staffOnly ? true : l.to === "/alerts" || l.to === "/tasks" || l.to === "/");
-    return !l.staffOnly;
-  });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const groups = useMemo(
+    () =>
+      sidebarGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => item.roles.includes(role ?? "admin")),
+        }))
+        .filter((group) => group.items.length > 0),
+    [role],
+  );
+
+  const links = useMemo(
+    () => standaloneLinks.filter((item) => item.roles.includes(role ?? "admin")),
+    [role],
+  );
+
+  const handleToggleGroup = (groupLabel: string) => {
+    setOpenGroups((state) => ({ ...state, [groupLabel]: !state[groupLabel] }));
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-60 flex flex-col z-30 border-r border-sidebar-border" style={{ background: "hsl(var(--sidebar-bg))" }}>
       <div className="px-5 py-5 flex items-center min-h-[68px] border-b border-sidebar-border/50">
         <img src={zargoLogo} alt="Zargo" className="h-11 object-contain" />
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1.5">
+      <nav className="flex-1 px-3 py-4">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              isActive
+                ? "bg-sidebar-active text-sidebar-active-foreground shadow-[0_4px_14px_-4px_hsl(var(--sidebar-active)/0.5)]"
+                : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
+            }`
+          }
+        >
+          <LayoutDashboard size={18} className="shrink-0" />
+          <span>Dashboard</span>
+        </NavLink>
+
         {links.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === "/"}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              `group relative mt-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? "bg-sidebar-active text-sidebar-active-foreground shadow-[0_4px_14px_-4px_hsl(var(--sidebar-active)/0.5)]"
-                  : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-accent-foreground hover:translate-x-0.5"
-              }`
+                  : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
+            }`
             }
           >
             <Icon size={18} className="shrink-0" />
             <span>{label}</span>
           </NavLink>
         ))}
+
+        <div className="mt-4 space-y-1">
+          {groups.map((group) => {
+            const isOpen = openGroups[group.label];
+            return (
+              <div key={group.label}>
+                <button
+                  type="button"
+                  aria-expanded={isOpen ? "true" : "false"}
+                  onClick={() => handleToggleGroup(group.label)}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:text-sidebar-accent-foreground"
+                >
+                  <span>{group.label}</span>
+                  <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                </button>
+                <div className={`overflow-hidden transition-[max-height] duration-200 ${isOpen ? "max-h-72" : "max-h-0"}`}>
+                  <div className="space-y-1 pl-10 pr-3 pb-1">
+                    {group.items.map(({ to, label, icon: Icon }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={to === "/"}
+                        className={({ isActive }) =>
+                          `group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                            isActive
+                              ? "bg-sidebar-active text-sidebar-active-foreground shadow-[0_4px_14px_-4px_hsl(var(--sidebar-active)/0.5)]"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
+                          } transition-all duration-200`
+                        }
+                      >
+                        <Icon size={16} className="shrink-0" />
+                        <span>{label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </nav>
 
       <div className="px-3 pb-3 border-t border-sidebar-border/50 pt-3">
@@ -69,9 +196,7 @@ const Sidebar = () => {
         </button>
       </div>
 
-      <div className="px-5 pb-3 text-[10px] text-sidebar-foreground/40">
-        © 2026 Zargo EV
-      </div>
+      <div className="px-5 pb-3 text-[10px] text-sidebar-foreground/40">© 2026 Zargo EV</div>
     </aside>
   );
 };

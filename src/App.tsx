@@ -21,6 +21,8 @@ import TasksPage from "@/pages/TasksPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import ChangePassword from "@/pages/ChangePassword";
 import ReportsPage from "@/pages/ReportsPage";
+import SecurityDepositsPage from "@/pages/SecurityDepositsPage";
+import VehicleHandoverPage from "@/pages/VehicleHandoverPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "@/pages/NotFound";
@@ -36,37 +38,39 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <DateFilterProvider>
-        <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/vehicles" element={<VehiclesPage />} />
-            <Route path="/bookings" element={<BookingsPage />} />
-            <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/leads" element={<ProtectedRoute requiredRole="admin"><LeadsPage /></ProtectedRoute>} />
-            <Route path="/onboarding" element={<ProtectedRoute requiredRole="admin"><OnboardingPage /></ProtectedRoute>} />
-            <Route path="/renewals" element={<ProtectedRoute requiredRole="admin"><RenewalsPage /></ProtectedRoute>} />
-            <Route path="/recovery" element={<ProtectedRoute requiredRole="admin"><RecoveryPage /></ProtectedRoute>} />
-            <Route path="/returns" element={<ProtectedRoute requiredRole="admin"><ReturnsPage /></ProtectedRoute>} />
-            <Route path="/payments" element={<ProtectedRoute requiredRole="admin"><PaymentsPage /></ProtectedRoute>} />
-            <Route path="/insurance" element={<ProtectedRoute requiredRole="admin"><InsurancePage /></ProtectedRoute>} />
-            <Route path="/service-job-cards" element={<ProtectedRoute requiredRole="admin"><ServiceJobCardsPage /></ProtectedRoute>} />
-            <Route path="/tasks" element={<ProtectedRoute requiredRole="staff"><TasksPage /></ProtectedRoute>} />
-            <Route path="/employees" element={<ProtectedRoute requiredRole="admin"><EmployeesPage /></ProtectedRoute>} />
-            <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute requiredRole="admin"><SettingsPage /></ProtectedRoute>} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </AuthProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/vehicles" element={<ProtectedRoute><VehiclesPage /></ProtectedRoute>} />
+                <Route path="/bookings" element={<BookingsPage />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/leads" element={<LeadsPage />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/renewals" element={<RenewalsPage />} />
+                <Route path="/returns" element={<ReturnsPage />} />
+                <Route path="/service-job-cards" element={<ServiceJobCardsPage />} />
+                <Route path="/vehicle-handover" element={<ProtectedRoute requiredRole="admin"><VehicleHandoverPage /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute requiredRole="staff"><TasksPage /></ProtectedRoute>} />
+                <Route path="/employees" element={<ProtectedRoute requiredRole="admin"><EmployeesPage /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute>} />
+                <Route path="/payments" element={<ProtectedRoute requiredRole="admin"><PaymentsPage /></ProtectedRoute>} />
+                <Route path="/insurance" element={<ProtectedRoute requiredRole="admin"><InsurancePage /></ProtectedRoute>} />
+                <Route path="/recovery" element={<ProtectedRoute requiredRole="admin"><RecoveryPage /></ProtectedRoute>} />
+                <Route path="/security-deposits" element={<ProtectedRoute requiredRole="admin"><SecurityDepositsPage /></ProtectedRoute>} />
+                <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute requiredRole="admin"><SettingsPage /></ProtectedRoute>} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </DateFilterProvider>
       </BrowserRouter>
     </TooltipProvider>
