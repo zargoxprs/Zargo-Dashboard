@@ -2,11 +2,13 @@ import { create } from "zustand";
 import { Vehicle, Booking, Alert, Employee } from "./types";
 
 
-function generateAlerts(bookings: Booking[], existingManualAlerts: Alert[]): Alert[] {
+function generateAlerts(bookings: Booking[], existingAlerts: Alert[]): Alert[] {
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
   const auto: Alert[] = [];
   let id = 1;
+
+  const existingByMessage = new Map(existingAlerts.map((a) => [a.message, a]));
 
   for (const b of bookings) {
     if (b.status === "completed") continue;
@@ -27,9 +29,13 @@ function generateAlerts(bookings: Booking[], existingManualAlerts: Alert[]): Ale
     }
   }
 
-  // Keep manually added or read alerts, prepend auto-generated
-  const manual = existingManualAlerts.filter((a) => !a.id.startsWith("AUTO-"));
-  return [...auto, ...manual];
+  const mergedAuto = auto.map((alert) => {
+    const previous = existingByMessage.get(alert.message);
+    return previous ? { ...alert, id: previous.id, status: previous.status } : alert;
+  });
+
+  const manual = existingAlerts.filter((a) => !a.id.startsWith("AUTO-"));
+  return [...mergedAuto, ...manual];
 }
 
 function applyBookingStatuses(bookings: Booking[]): Booking[] {

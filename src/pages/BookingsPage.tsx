@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useBookings, useAddBooking } from "@/hooks/useBookings";
 import { useVehicles } from "@/hooks/useVehicles";
 import StatusBadge from "@/components/StatusBadge";
@@ -26,7 +26,16 @@ interface BookingForm {
   kmLimit: number;
   kmUsed: number;
   status: BookingStatus;
+  amount: number;
 }
+
+const rentalPlans = [
+  { id: "qs-weekly", model: "Quanta S", name: "Weekly", durationDays: 7, rental: 1800, deposit: 1800, kmLimit: 999999, kmLabel: "Unlimited KM" },
+  { id: "qs-monthly-2000", model: "Quanta S", name: "Monthly", durationDays: 30, rental: 5400, deposit: 1800, kmLimit: 2000, kmLabel: "2000 KM" },
+  { id: "qs-monthly-3000", model: "Quanta S", name: "Monthly", durationDays: 30, rental: 6200, deposit: 1800, kmLimit: 3000, kmLabel: "3000 KM" },
+  { id: "qs-monthly-unlimited", model: "Quanta S", name: "Monthly", durationDays: 30, rental: 7000, deposit: 1800, kmLimit: 999999, kmLabel: "Unlimited KM" },
+  { id: "qsplus-weekly", model: "Quanta S+", name: "Weekly", durationDays: 7, rental: 1950, deposit: 1950, kmLimit: 999999, kmLabel: "Unlimited KM" },
+];
 
 const BookingsPage = () => {
   const bookingsQ = useBookings();
@@ -36,41 +45,63 @@ const BookingsPage = () => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [form, setForm] = useState<BookingForm>({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: 1500, kmUsed: 0, status: "active" });
+  const [selectedPlanId, setSelectedPlanId] = useState(rentalPlans[0].id);
+  const [form, setForm] = useState<BookingForm>({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: rentalPlans[0].kmLimit, kmUsed: 0, status: "active", amount: rentalPlans[0].rental });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchParams] = useSearchParams();
   const { range } = useDateFilter();
   const { role, user } = useAuth();
 
-  const isLoading = bookingsQ.isLoading;
-  const hasBookings = bookings.length > 0;
+  const selectedPlan = rentalPlans.find((plan) => plan.id === selectedPlanId) ?? rentalPlans[0];
 
-  const normalizedVehicleText = (vehicle: any) => {
+  const availableVehicles = Array.isArray(vehicles) ? vehicles.filter((v: any) => v?.status === "available") : [];
+  const filteredVehicles = availableVehicles.filter((v: any) => v.model === selectedPlan.model);
+  const vehicleOptions = filteredVehicles.length > 0 ? filteredVehicles : availableVehicles;
+
+  const calculateEndDate = (startDate: string, durationDays: number) => {
+    if (!startDate) return "";
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + durationDays);
+    return date.toISOString().split("T")[0];
+  };
+
+  const handlePlanChange = (planId: string) => {
+    const plan = rentalPlans.find((item) => item.id === planId) ?? rentalPlans[0];
+    setSelectedPlanId(plan.id);
+    setForm((prev) => ({
+      ...prev,
+      amount: plan.rental,
+      kmLimit: plan.kmLimit,
+      endDate: calculateEndDate(prev.startDate || new Date().toISOString().split("T")[0], plan.durationDays),
+    }));
+  };
+
+  const handleStartDateChange = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      startDate: value,
+      endDate: calculateEndDate(value, selectedPlan.durationDays),
+    }));
+  };
+
+  const safeVehicleText = (vehicle: any) => {
     if (!vehicle) return "N/A";
     if (typeof vehicle === "string") return vehicle;
-    return `${vehicle.vehicleId ?? vehicle.vehicle_number ?? vehicle.model ?? ""} ${vehicle.numberPlate ?? vehicle.vehicle_number ?? ""} ${vehicle.model ?? ""}`.trim() || "N/A";
+    return `${vehicle.model ?? ""}${vehicle.numberPlate ? ` – ${vehicle.numberPlate}` : ""}`.trim() || "N/A";
   };
 
   const getVehicleId = (vehicle: any) => vehicle?._id ?? vehicle?.id ?? "";
-  const getVehicleLabel = (vehicle: any) => {
-    if (!vehicle) return "Unknown vehicle";
-    return `${vehicle.model ?? ""} – ${vehicle.numberPlate ?? vehicle.vehicle_number ?? vehicle.vehicleId ?? ""}`.trim() || "Unknown vehicle";
-  };
-
-  const availableVehicles = Array.isArray(vehicles) ? vehicles.filter((v: any) => v?.status === "available") : [];
-
-  const paramQ = searchParams.get("query") ?? "";
+  const getVehicleLabel = (vehicle: any) => vehicle ? `${vehicle.model ?? "Unknown"} – ${vehicle.numberPlate ?? vehicle.vehicleId ?? "Unknown"}` : "Unknown vehicle";
 
   const filtered = useMemo(() => (bookings || []).filter((b) => {
     const safeBooking = b ?? {};
-    const vehicleText = normalizedVehicleText(safeBooking.vehicle);
+    const vehicleText = safeVehicleText(safeBooking.vehicle);
     const riderName = String(safeBooking.riderName ?? "N/A");
-    const bookingId = String(safeBooking.bookingId ?? "");
-    const term = (search || paramQ).toLowerCase();
+    const bookingId = String(safeBooking.bookingId ?? safeBooking._id ?? safeBooking.id ?? "");
+    const term = ((search || searchParams.get("query")) ?? "").toLowerCase();
     const matchSearch = !term || riderName.toLowerCase().includes(term) || bookingId.toLowerCase().includes(term) || vehicleText.toLowerCase().includes(term);
     const matchStatus = statusFilter === "all" || String(safeBooking.status ?? "pending") === statusFilter;
 
-    // date range filter (based on start date or created)
     const startDateStr = safeBooking.startDate ?? safeBooking.start_date ?? safeBooking.createdAt ?? safeBooking.created_at;
     let matchDate = true;
     if (range?.start) {
@@ -80,7 +111,6 @@ const BookingsPage = () => {
       matchDate = new Date(startDateStr) <= new Date(range.end);
     }
 
-    // staff scoping: staff only sees bookings related to their hub or assigned bookings
     let matchRole = true;
     if (role === "staff" && user) {
       try {
@@ -93,7 +123,7 @@ const BookingsPage = () => {
     }
 
     return matchSearch && matchStatus && matchDate && matchRole;
-  }), [bookings, search, paramQ, statusFilter, range, role, user, vehicles]);
+  }), [bookings, search, searchParams, statusFilter, range, role, user, vehicles]);
 
   const initials = (name: string) => {
     const safeName = String(name ?? "").trim();
@@ -120,12 +150,15 @@ const BookingsPage = () => {
 
     addBooking.mutate(form as any, {
       onSuccess: () => {
-        setForm({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: 1500, kmUsed: 0, status: "active" });
+        setForm({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: selectedPlan.kmLimit, kmUsed: 0, status: "active", amount: selectedPlan.rental });
+        setSelectedPlanId(rentalPlans[0].id);
         setErrors({});
         setOpen(false);
       },
     });
   };
+
+  const planDescription = `${selectedPlan.model} ${selectedPlan.name} · ₹${selectedPlan.rental} · Deposit ₹${selectedPlan.deposit} · ${selectedPlan.kmLabel}`;
 
   return (
     <div className="space-y-6">
@@ -141,52 +174,105 @@ const BookingsPage = () => {
           <DialogContent>
             <DialogHeader><DialogTitle>Add Booking</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div className="space-y-1.5">
-                <Label>Rider Name</Label>
-                <Input placeholder="e.g. Rahul Sharma" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
-                {errors.riderName && <p className="text-xs text-destructive">{errors.riderName}</p>}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Rider Name</Label>
+                  <Input placeholder="e.g. Rahul Sharma" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
+                  {errors.riderName && <p className="text-xs text-destructive">{errors.riderName}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone Number</Label>
+                  <Input placeholder="+91 98765 43210" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                  {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Phone Number</Label>
-                <Input placeholder="+91 98765 43210" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Rental plan</Label>
+                  <Select value={selectedPlanId} onValueChange={handlePlanChange}>
+                    <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                    <SelectContent>
+                      {rentalPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.model} / {plan.name} / {plan.kmLabel} / ₹{plan.rental}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Vehicle</Label>
+                  <Select value={form.vehicle} onValueChange={(value) => setForm({ ...form, vehicle: value })}>
+                    <SelectTrigger><SelectValue placeholder={vehicleOptions.length ? "Select available vehicle" : "No available vehicles"} /></SelectTrigger>
+                    <SelectContent>
+                      {vehicleOptions.length > 0 ? vehicleOptions.map((v: any) => (
+                        <SelectItem key={getVehicleId(v)} value={getVehicleId(v)}>{getVehicleLabel(v)}</SelectItem>
+                      )) : (
+                        <SelectItem value="" disabled>No available vehicles</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.vehicle && <p className="text-xs text-destructive">{errors.vehicle}</p>}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Vehicle</Label>
-              <Select value={form.vehicle} onValueChange={(v) => setForm({ ...form, vehicle: v })}>
-                <SelectTrigger><SelectValue placeholder="Select available vehicle" /></SelectTrigger>
-                <SelectContent>
-                  {availableVehicles.length > 0 ? (
-                    availableVehicles.map((v) => {
-                      const id = getVehicleId(v);
-                      return <SelectItem key={id} value={id}>{getVehicleLabel(v)}</SelectItem>;
-                    })
-                  ) : (
-                    <SelectItem value="" disabled>
-                      No available vehicles
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-                {errors.vehicle && <p className="text-xs text-destructive">{errors.vehicle}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Start Date</Label>
-                  <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+                  <Input type="date" value={form.startDate} onChange={(e) => handleStartDateChange(e.target.value)} />
                   {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label>End Date</Label>
-                  <Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+                  <Input type="date" value={form.endDate} readOnly />
                   {errors.endDate && <p className="text-xs text-destructive">{errors.endDate}</p>}
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>KM Limit</Label>
-                <Input type="number" placeholder="Allowed KM" value={form.kmLimit} onChange={(e) => setForm({ ...form, kmLimit: Number(e.target.value) })} />
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Rental</p>
+                  <p className="mt-2 font-semibold">₹{selectedPlan.rental}</p>
+                </div>
+                <div className="rounded-2xl border border-border p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Deposit</p>
+                  <p className="mt-2 font-semibold">₹{selectedPlan.deposit}</p>
+                </div>
               </div>
-              <Button className="w-full" onClick={handleSubmit}>Save</Button>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">KM Limit</p>
+                  <p className="mt-2 font-semibold">{selectedPlan.kmLabel}</p>
+                </div>
+                <div className="rounded-2xl border border-border p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Duration</p>
+                  <p className="mt-2 font-semibold">{selectedPlan.name} ({selectedPlan.durationDays} days)</p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value as BookingStatus })}>
+                    <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>KM Used</Label>
+                  <Input type="number" value={form.kmUsed} onChange={(e) => setForm({ ...form, kmUsed: Number(e.target.value) })} />
+                </div>
+              </div>
+
+              <div className="text-sm text-muted-foreground">{planDescription}</div>
+              <Button className="w-full" onClick={handleSubmit}>Create booking</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -224,64 +310,64 @@ const BookingsPage = () => {
         ) : filtered.length === 0 ? (
           <EmptyState title="No bookings" description="Try adjusting your filters or create a booking." />
         ) : (
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-muted/60 z-10">
-            <tr className="border-b">
-              {["ID", "Rider", "Vehicle", "Start", "End", "KM", "Status"].map((h) => (
-                <th key={h} className="text-left px-5 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((b) => {
-              const booking = b ?? {};
-              const safeBookingId = String(booking.bookingId ?? "-");
-              const safeRiderName = String(booking.riderName ?? "N/A");
-              const safePhone = String(booking.phone ?? "-");
-              const safeVehicleValue = booking.vehicle ?? "N/A";
-              const vehicleRecord = Array.isArray(vehicles)
-                ? (vehicles as any[]).find((v) => getVehicleId(v) === safeVehicleValue)
-                : undefined;
-              const safeVehicleLabel = vehicleRecord
-                ? `${vehicleRecord.model ?? ""} – ${vehicleRecord.numberPlate ?? ""}`.trim() || "N/A"
-                : typeof safeVehicleValue === "string"
-                ? safeVehicleValue
-                : `${safeVehicleValue?.vehicleId ?? ""} – ${safeVehicleValue?.numberPlate ?? ""}`.trim() || "N/A";
-              const safeStartDateObj = booking.startDate ? new Date(booking.startDate) : null;
-              const safeEndDateObj = booking.endDate ? new Date(booking.endDate) : null;
-              const safeStartDate = safeStartDateObj instanceof Date && !isNaN(safeStartDateObj.getTime()) ? safeStartDateObj.toLocaleDateString() : "-";
-              const safeEndDate = safeEndDateObj instanceof Date && !isNaN(safeEndDateObj.getTime()) ? safeEndDateObj.toLocaleDateString() : "-";
-              const safeKmUsed = Number(booking.kmUsed ?? 0);
-              const safeKmLimit = Number(booking.kmLimit ?? 0);
-              const safeStatus = String(booking.status ?? "pending") as BookingStatus;
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-muted/60 z-10">
+              <tr className="border-b">
+                {['ID', 'Rider', 'Vehicle', 'Start', 'End', 'KM', 'Status'].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((b) => {
+                const booking = b ?? {};
+                const safeBookingId = String(booking.bookingId ?? booking._id ?? booking.id ?? "-");
+                const safeRiderName = String(booking.riderName ?? "N/A");
+                const safePhone = String(booking.phone ?? "-");
+                const safeVehicleValue = booking.vehicle ?? "N/A";
+                const vehicleRecord = Array.isArray(vehicles)
+                  ? (vehicles as any[]).find((v) => getVehicleId(v) === safeVehicleValue)
+                  : undefined;
+                const safeVehicleLabel = vehicleRecord
+                  ? `${vehicleRecord.model ?? ""} – ${vehicleRecord.numberPlate ?? ""}`.trim() || "N/A"
+                  : typeof safeVehicleValue === "string"
+                    ? safeVehicleValue
+                    : `${safeVehicleValue?.vehicleId ?? ""} – ${safeVehicleValue?.numberPlate ?? ""}`.trim() || "N/A";
+                const safeStartDateObj = booking.startDate ? new Date(booking.startDate) : null;
+                const safeEndDateObj = booking.endDate ? new Date(booking.endDate) : null;
+                const safeStartDate = safeStartDateObj instanceof Date && !isNaN(safeStartDateObj.getTime()) ? safeStartDateObj.toLocaleDateString() : "-";
+                const safeEndDate = safeEndDateObj instanceof Date && !isNaN(safeEndDateObj.getTime()) ? safeEndDateObj.toLocaleDateString() : "-";
+                const safeKmUsed = Number(booking.kmUsed ?? 0);
+                const safeKmLimit = Number(booking.kmLimit ?? 0);
+                const safeStatus = String(booking.status ?? "pending") as BookingStatus;
 
-              return (
-                <tr key={String(booking._id ?? safeBookingId)} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-5 py-3 font-medium whitespace-nowrap text-primary">{safeBookingId}</td>
-                  <td className="px-5 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                        {initials(safeRiderName)}
+                return (
+                  <tr key={String(booking._id ?? safeBookingId)} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-5 py-3 font-medium whitespace-nowrap text-primary">{safeBookingId}</td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                          {initials(safeRiderName)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{safeRiderName}</div>
+                          <div className="text-xs text-muted-foreground">{safePhone}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium">{safeRiderName}</div>
-                        <div className="text-xs text-muted-foreground">{safePhone}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 whitespace-nowrap">{safeVehicleLabel}</td>
-                  <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{safeStartDate}</td>
-                  <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{safeEndDate}</td>
-                  <td className="px-5 py-3 whitespace-nowrap">
-                    <span className={safeKmUsed > safeKmLimit ? "text-destructive font-semibold" : ""}>{safeKmUsed}</span>
-                    <span className="text-muted-foreground">/{safeKmLimit}</span>
-                  </td>
-                  <td className="px-5 py-3 whitespace-nowrap"><StatusBadge status={safeStatus} /></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">{safeVehicleLabel}</td>
+                    <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{safeStartDate}</td>
+                    <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{safeEndDate}</td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <span className={safeKmUsed > safeKmLimit ? "text-destructive font-semibold" : ""}>{safeKmUsed}</span>
+                      <span className="text-muted-foreground">/{safeKmLimit >= 999999 ? "Unlimited" : safeKmLimit}</span>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap"><StatusBadge status={safeStatus} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

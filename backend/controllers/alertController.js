@@ -13,6 +13,12 @@ exports.markRead = async (req, res, next) => {
     res.json(item);
   } catch (e) { next(e); }
 };
+exports.markAllRead = async (_req, res, next) => {
+  try {
+    await Alert.updateMany({ status: "unread" }, { status: "read" });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+};
 exports.remove = async (req, res, next) => {
   try {
     const item = await Alert.findByIdAndDelete(req.params.id);

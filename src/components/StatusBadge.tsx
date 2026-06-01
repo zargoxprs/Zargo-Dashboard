@@ -17,6 +17,10 @@ const colorMap: Record<string, string> = {
   warning: "bg-warning/15 text-warning",
   unread: "bg-destructive/15 text-destructive",
   read: "bg-muted text-muted-foreground",
+  interested: "bg-primary/15 text-primary",
+  converted: "bg-success/15 text-success",
+  lost: "bg-destructive/15 text-destructive",
+  "ready for booking": "bg-success/15 text-success",
 };
 
 export const StatusBadge = ({ status }: { status: string }) => (

@@ -8,6 +8,7 @@ router.use(protect);
 router.get("/", ctrl.list);
 router.post("/", ctrl.create);
 router.patch("/:id/read", ctrl.markRead);
+router.patch("/read/all", ctrl.markAllRead);
 router.delete("/:id", ctrl.remove);
 
 module.exports = router;
