@@ -96,8 +96,8 @@ const EmployeesPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Active Employees" value={activeCount} icon={UserCheck} accent="success" subtitle={`${employees.length} total`} />
         <StatCard title="Pending Tasks" value={7} icon={ClipboardCheck} accent="warning" subtitle="Across all hubs" />
-        <StatCard title="KYC Approvals" value={4} icon={FileCheck2} accent="primary" subtitle="Awaiting review" />
         <StatCard title="Handovers Today" value={3} icon={Repeat} accent="accent" subtitle={`${totalOnboards} onboards total`} />
+        <StatCard title="Open Cases" value={4} icon={FileCheck2} accent="primary" subtitle="Staff follow-ups" />
       </div>
 
       {/* Team Management Header */}

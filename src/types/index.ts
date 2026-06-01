@@ -66,7 +66,7 @@ export interface Alert {
 
 export interface Activity {
   id: string;
-  type: "booking" | "vehicle" | "kyc" | "payment" | "employee" | "service" | "alert" | string;
+  type: "booking" | "vehicle" | "payment" | "employee" | "service" | "alert" | string;
   message: string;
   created_at: string;
   meta?: Record<string, any>;

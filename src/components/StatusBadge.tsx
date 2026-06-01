@@ -3,7 +3,9 @@ import { cn } from "@/lib/utils";
 const colorMap: Record<string, string> = {
   active: "bg-primary/15 text-primary",
   available: "bg-success/15 text-success",
-  completed: "bg-muted text-muted-foreground",
+  completed: "bg-success/15 text-success",
+  assigned: "bg-primary/15 text-primary",
+  "in-progress": "bg-warning/15 text-warning",
   rented: "bg-primary/15 text-primary",
   pending: "bg-warning/15 text-warning",
   due: "bg-warning/15 text-warning",

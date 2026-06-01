@@ -27,6 +27,32 @@ export const useMarkAlertRead = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => alertService.markRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: KEY });
+      const previous = qc.getQueryData(KEY as any);
+      qc.setQueryData(KEY as any, (old: any) => (old || []).map((a: any) => (a.id === id ? { ...a, status: "read" } : a)));
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previous) qc.setQueryData(KEY as any, context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+};
+
+export const useMarkAllAlertsRead = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => alertService.markAllRead(),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: KEY });
+      const previous = qc.getQueryData(KEY as any);
+      qc.setQueryData(KEY as any, (old: any) => (old || []).map((a: any) => ({ ...a, status: "read" })));
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previous) qc.setQueryData(KEY as any, context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };

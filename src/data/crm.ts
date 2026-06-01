@@ -104,13 +104,6 @@ export const crmTimeline: CrmTimelineEvent[] = [
     details: "New inquiry recorded for a long-term EV rental.",
   },
   {
-    id: "TL-002",
-    customerName: "Priya Sharma",
-    date: "2026-05-26 14:03",
-    event: "KYC Approved",
-    details: "Customer documents verified and approved.",
-  },
-  {
     id: "TL-003",
     customerName: "Rahul Verma",
     date: "2026-05-20 09:45",

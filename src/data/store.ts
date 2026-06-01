@@ -101,6 +101,9 @@ export const useStore = create<AppState>((set) => ({
   markAlertRead: (id) => set((s) => ({
     alerts: s.alerts.map((x) => (x.id === id ? { ...x, status: "read" as const } : x)),
   })),
+  markAllAlertsRead: () => set((s) => ({
+    alerts: s.alerts.map((x) => ({ ...x, status: "read" as const })),
+  })),
   addEmployee: (e) => set((s) => ({
     employees: [...s.employees, { ...e, id: `E${String(s.employees.length + 1).padStart(3, "0")}` }],
     activities: [{ id: `ACT-${s.activities.length + 1}`, type: "employee", message: `${e.name} added`, created_at: new Date().toISOString() }, ...s.activities],

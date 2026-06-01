@@ -1,22 +1,23 @@
 // react-router hooks
-import { Bell, User, LogOut, Settings, ChevronDown, Search, MapPin, Calendar, AlertCircle, AlertTriangle, Info, ArrowRight, Check, X } from "lucide-react";
-import { useStore } from "@/data/store";
+import { Bell, User, LogOut, Settings, ChevronDown, Search, MapPin, Calendar, AlertCircle, AlertTriangle, Info, Check, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useState, useMemo, useEffect } from "react";
+import { useStore } from "@/data/store";
 import { useDateFilter } from "@/context/DateFilterContext";
-import DateRangePicker from "@/components/DateRangePicker";
 import { useLocation, useNavigate } from "react-router-dom";
-import { alertService } from "@/services/alertService";
+import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from "@/hooks/useAlerts";
 import { cn } from "@/lib/utils";
 
 const TopBar = () => {
   const navigate = useNavigate();
-  const alerts = useStore((s) => s.alerts);
-  const markAlertRead = useStore((s) => s.markAlertRead);
+  const alertsQ = useAlerts();
+  const alerts = alertsQ.data ?? [];
+  const markAlertRead = useMarkAlertRead();
+  const markAllAlertsRead = useMarkAllAlertsRead();
   const { role, logout } = useAuth();
   const displayName = role === "admin" ? "Admin" : "Staff";
   const [hub, setHub] = useState("Kukatpally");
@@ -25,7 +26,8 @@ const TopBar = () => {
   const [openSearch, setOpenSearch] = useState(false);
   const { range, setRange } = useDateFilter();
   const location = useLocation();
-  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [customStart, setCustomStart] = useState(range.start ? range.start.split("T")[0] : "");
+  const [customEnd, setCustomEnd] = useState(range.end ? range.end.split("T")[0] : "");
   const today = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
   // Categorize alerts
@@ -52,26 +54,29 @@ const TopBar = () => {
 
   const tabAlerts = getTabAlerts();
 
+  useEffect(() => {
+    if (range.key === "custom") {
+      setCustomStart(range.start ? range.start.split("T")[0] : "");
+      setCustomEnd(range.end ? range.end.split("T")[0] : "");
+    }
+  }, [range]);
+
   const severityMeta = {
     critical: { icon: AlertCircle, text: "text-destructive", bg: "bg-destructive/10" },
     warning: { icon: AlertTriangle, text: "text-warning", bg: "bg-warning/10" },
     info: { icon: Info, text: "text-primary", bg: "bg-primary/10" },
   };
 
-  const handleAlertClick = (alertId: string) => {
-    markAlertRead(alertId);
-    navigate(`/alerts?alertId=${encodeURIComponent(alertId)}`);
+  // alert row clicks should not navigate; only explicit actions handle navigation
+
+  const handleMarkRead = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    markAlertRead.mutate(id);
   };
 
-  const handleMarkRead = async (e: React.MouseEvent, id: string) => {
+  const handleMarkAllRead = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    // update local store immediately
-    markAlertRead(id);
-    try {
-      await alertService.markRead(id);
-    } catch (err) {
-      // ignore network error for now
-    }
+    markAllAlertsRead.mutate();
   };
 
   // simple in-memory search across store
@@ -174,18 +179,46 @@ const TopBar = () => {
               <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
-          {/* Custom range picker panel */}
-          {showCustomPicker && (
-            <div className="absolute z-50 mt-2 right-0">
-              <DateRangePicker
-                initialStart={range.start}
-                initialEnd={range.end}
-                onApply={(s, e) => {
-                  setRange({ key: "custom", start: s, end: e });
-                  setShowCustomPicker(false);
-                }}
-                onCancel={() => setShowCustomPicker(false)}
-              />
+          {range.key === "custom" && (
+            <div className="ml-2 flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-muted/10 rounded-md p-2">
+                <Input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="h-9 w-36"
+                />
+                <Input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="h-9 w-36"
+                />
+                <div className="flex items-center gap-2 ml-1">
+                  <button
+                    onClick={() => {
+                      setCustomStart("");
+                      setCustomEnd("");
+                      setRange({ key: "custom" });
+                    }}
+                    className="rounded-md border border-border px-3 py-1 text-sm text-muted-foreground hover:bg-muted/40 h-9 flex items-center justify-center"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRange({
+                        key: "custom",
+                        start: customStart ? new Date(customStart).toISOString() : undefined,
+                        end: customEnd ? new Date(customEnd).toISOString() : undefined,
+                      });
+                    }}
+                    className="rounded-md bg-primary px-3 py-1 text-sm font-medium text-white hover:bg-primary/90 h-9 flex items-center justify-center"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -205,26 +238,6 @@ const TopBar = () => {
             <SelectItem value="Gachibowli">Gachibowli Hub</SelectItem>
             <SelectItem value="all">All Hubs</SelectItem>
           </SelectContent>
-          {showCustomPicker && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <div />
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <DateRangePicker
-                  initialStart={range.start}
-                  initialEnd={range.end}
-                  onApply={(s, e) => {
-                    setRange({ key: "custom", start: s, end: e });
-                    setShowCustomPicker(false);
-                    // refresh route to ensure pages pick up query changes
-                    navigate(location.pathname + location.search, { replace: true });
-                  }}
-                  onCancel={() => setShowCustomPicker(false)}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
         </Select>
         <Popover>
           <PopoverTrigger asChild>
@@ -238,11 +251,22 @@ const TopBar = () => {
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-96 p-0" align="end">
-            <div className="p-4 border-b">
-              <h3 className="font-semibold text-sm">Notifications</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {unreadCount === 0 ? "All caught up!" : `${unreadCount} unread alert${unreadCount !== 1 ? "s" : ""}`}
-              </p>
+            <div className="p-4 border-b flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-sm">Notifications</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {unreadCount === 0 ? "All caught up!" : `${unreadCount} unread alert${unreadCount !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  disabled={markAllAlertsRead.isLoading}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Mark all read
+                </button>
+              )}
             </div>
 
             {alerts.length === 0 ? (
@@ -295,14 +319,13 @@ const TopBar = () => {
                       const Icon = meta.icon;
 
                       return (
-                        <div
-                          key={a.id}
-                          onClick={() => handleAlertClick(a.id)}
-                          className={cn(
-                            "w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-0 flex items-start gap-3 group cursor-pointer",
-                            a.status === "read" ? "opacity-70" : ""
-                          )}
-                        >
+                          <div
+                            key={a.id}
+                            className={cn(
+                              "w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-0 flex items-start gap-3 group",
+                              a.status === "read" ? "opacity-70" : ""
+                            )}
+                          >
                           <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", meta.bg, meta.text)}>
                             <Icon size={16} />
                           </div>
@@ -316,19 +339,15 @@ const TopBar = () => {
                               <span className="text-xs text-muted-foreground inline-block mt-1">{a.type}</span>
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(a.created_at).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(a.created_at).toLocaleDateString("en-GB").replace(/\//g, "-")}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             {a.status === "unread" && (
-                              <button onClick={(e) => handleMarkRead(e, a.id)} className="p-2 rounded-md hover:bg-muted/30">
+                              <button onClick={(e) => handleMarkRead(e, a.id)} className="p-2 rounded-md hover:bg-muted/30" aria-label="Mark read">
                                 <Check size={14} />
                               </button>
                             )}
-                            <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
                           </div>
                         </div>
                       );
@@ -342,7 +361,6 @@ const TopBar = () => {
                   className="w-full px-4 py-3 text-sm font-medium text-center border-t hover:bg-muted/30 transition-colors flex items-center justify-center gap-2 text-primary"
                 >
                   View all alerts
-                  <ArrowRight size={14} />
                 </button>
               </>
             )}

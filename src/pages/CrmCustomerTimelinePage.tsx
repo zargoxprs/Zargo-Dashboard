@@ -4,7 +4,6 @@ import { Clock, FileText, CheckCircle2, ShieldCheck, ArrowRight, Bell } from "lu
 
 const eventIcon: Record<string, ElementType> = {
   "Lead Created": FileText,
-  "KYC Approved": CheckCircle2,
   "Vehicle Assigned": ShieldCheck,
   "Booking Created": ArrowRight,
   "Renewal Reminder": Bell,
@@ -14,7 +13,9 @@ const eventIcon: Record<string, ElementType> = {
 };
 
 const CrmCustomerTimelinePage = () => {
-  const sortedEvents = [...crmTimeline].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedEvents = [...crmTimeline]
+    .filter((event) => event.event !== "KYC Approved")
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="space-y-6">

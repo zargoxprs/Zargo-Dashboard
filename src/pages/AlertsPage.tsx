@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useAlerts, useMarkAlertRead } from "@/hooks/useAlerts";
+import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from "@/hooks/useAlerts";
 import { TableSkeleton } from "@/components/states/LoadingSkeleton";
 import { AlertTriangle, AlertCircle, Info, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,11 @@ const AlertsPage = () => {
   }, [searchParams]);
 
   const selectedAlert = alerts.find((a) => a.id === selectedAlertId);
+  const markAllAlertsRead = useMarkAllAlertsRead();
+  const unreadCount = alerts.filter((a) => a.status === "unread").length;
+  const PAGE_SIZE = 10;
+  const [unreadPage, setUnreadPage] = useState(1);
+  const [readPage, setReadPage] = useState(1);
 
   // Prepare a set of booking-related identifiers for staff scoping
   const hubBookingIdentifiers = useMemo(() => {
@@ -84,9 +89,20 @@ const AlertsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Alerts</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Real-time notifications across your operation</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Alerts</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Real-time notifications across your operation</p>
+        </div>
+        {unreadCount > 0 && (
+          <button
+            onClick={() => markAllAlertsRead.mutate()}
+            disabled={markAllAlertsRead.isLoading}
+            className="rounded-full border border-border px-3 py-2 text-sm font-medium text-primary hover:bg-muted/40"
+          >
+            Mark all read
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -152,7 +168,7 @@ const AlertsPage = () => {
         </div>
       )}
 
-      <div className="space-y-2.5">
+      <div className="space-y-6">
         {alertsQ.isLoading ? (
           <TableSkeleton rows={5} cols={3} />
         ) : filtered.length === 0 ? (
@@ -161,48 +177,145 @@ const AlertsPage = () => {
             No alerts match your filters
           </div>
         ) : (
-          filtered.map((a) => {
-            const meta = severityMeta[a.severity] || severityMeta.info;
-            const Icon = meta.icon;
-            return (
-              <button
-                key={a.id}
-                onClick={() => handleSelectAlert(a.id)}
-                className={cn(
-                  "w-full rounded-lg border border-l-4 px-5 py-4 flex items-center justify-between gap-4 text-left transition-all",
-                  meta.border,
-                  a.status === "unread" && "ring-1 ring-border/80",
-                  selectedAlertId === a.id && "bg-muted"
-                )}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", meta.bg, meta.text)}>
-                    <Icon size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn("text-sm", a.status === "unread" && "font-semibold")}>
-                      {a.message}
-                      {a.status === "unread" && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-primary align-middle" />}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                      <span className={meta.text}>{a.severity}</span> · {a.type} · {a.created_at}
-                    </p>
-                  </div>
-                </div>
-                {a.status === "unread" && (
+          <>
+            {/* Unread Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Unread Alerts</h3>
+                <div className="text-sm text-muted-foreground">{filtered.filter((a) => a.status === "unread").length} unread</div>
+              </div>
+              {filtered.filter((a) => a.status === "unread").length === 0 ? (
+                <div className="bg-card rounded-xl border p-6 text-muted-foreground">No unread alerts</div>
+              ) : (
+                filtered
+                  .filter((a) => a.status === "unread")
+                  .slice((unreadPage - 1) * PAGE_SIZE, unreadPage * PAGE_SIZE)
+                  .map((a) => {
+                    const meta = severityMeta[a.severity] || severityMeta.info;
+                    const Icon = meta.icon;
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => handleSelectAlert(a.id)}
+                        className={cn(
+                          "w-full rounded-lg border border-l-4 px-5 py-4 flex items-center justify-between gap-4 text-left transition-all",
+                          meta.border,
+                          selectedAlertId === a.id && "bg-muted"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", meta.bg, meta.text)}>
+                            <Icon size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold">
+                              {a.message}
+                              <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-primary align-middle" />
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                              <span className={meta.text}>{a.severity}</span> · {a.type} · {a.created_at}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAlertRead.mutate(a.id);
+                          }}
+                          className="text-xs text-primary hover:underline shrink-0 font-medium"
+                        >
+                          Mark read
+                        </button>
+                      </button>
+                    );
+                  })
+              )}
+
+              {/* Unread pagination */}
+              {Math.ceil(filtered.filter((a) => a.status === "unread").length / PAGE_SIZE) > 1 && (
+                <div className="flex items-center justify-end gap-2">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      markAlertRead.mutate(a.id);
-                    }}
-                    className="text-xs text-primary hover:underline shrink-0 font-medium"
+                    onClick={() => setUnreadPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1 rounded-md border border-border text-sm"
                   >
-                    Mark read
+                    Prev
                   </button>
-                )}
-              </button>
-            );
-          })
+                  <div className="text-sm text-muted-foreground">Page {unreadPage}</div>
+                  <button
+                    onClick={() => setUnreadPage((p) => p + 1)}
+                    className="px-3 py-1 rounded-md border border-border text-sm"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <hr />
+
+            {/* Read Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Read Alerts</h3>
+                <div className="text-sm text-muted-foreground">{filtered.filter((a) => a.status === "read").length} read</div>
+              </div>
+              {filtered.filter((a) => a.status === "read").length === 0 ? (
+                <div className="bg-card rounded-xl border p-6 text-muted-foreground">No read alerts</div>
+              ) : (
+                filtered
+                  .filter((a) => a.status === "read")
+                  .slice((readPage - 1) * PAGE_SIZE, readPage * PAGE_SIZE)
+                  .map((a) => {
+                    const meta = severityMeta[a.severity] || severityMeta.info;
+                    const Icon = meta.icon;
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => handleSelectAlert(a.id)}
+                        className={cn(
+                          "w-full rounded-lg border border-l-4 px-5 py-4 flex items-center justify-between gap-4 text-left transition-all",
+                          meta.border,
+                          selectedAlertId === a.id && "bg-muted"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", meta.bg, meta.text)}>
+                            <Icon size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm">
+                              {a.message}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                              <span className={meta.text}>{a.severity}</span> · {a.type} · {a.created_at}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+              )}
+
+              {/* Read pagination */}
+              {Math.ceil(filtered.filter((a) => a.status === "read").length / PAGE_SIZE) > 1 && (
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setReadPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1 rounded-md border border-border text-sm"
+                  >
+                    Prev
+                  </button>
+                  <div className="text-sm text-muted-foreground">Page {readPage}</div>
+                  <button
+                    onClick={() => setReadPage((p) => p + 1)}
+                    className="px-3 py-1 rounded-md border border-border text-sm"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

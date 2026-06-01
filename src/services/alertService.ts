@@ -26,4 +26,12 @@ export const alertService = {
       }
     );
   },
+  async markAllRead(): Promise<void> {
+    return mockOr(
+      () => useStore.getState().markAllAlertsRead(),
+      async () => {
+        await apiClient.patch(`/alerts/read/all`);
+      }
+    );
+  },
 };

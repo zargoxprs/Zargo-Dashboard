@@ -39,7 +39,7 @@ describe("Dashboard rendering", () => {
     );
 
     expect(await screen.findByText(/Admin Dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/Total Vehicles/i)).toBeInTheDocument();
+    expect(screen.getByText(/Monthly Revenue/i)).toBeInTheDocument();
     expect(screen.getByText(/Available Vehicles/i)).toBeInTheDocument();
   });
 
@@ -61,6 +61,6 @@ describe("Dashboard rendering", () => {
 
     expect(await screen.findByText(/Staff Dashboard/i)).toBeInTheDocument();
     expect(screen.getByText(/My Assigned Tasks/i)).toBeInTheDocument();
-    expect(screen.getByText(/Pending PRD Tasks/i)).toBeInTheDocument();
+    expect(screen.getByText(/My Revenue/i)).toBeInTheDocument();
   });
 });
