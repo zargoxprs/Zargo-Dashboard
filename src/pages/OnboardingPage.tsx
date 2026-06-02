@@ -56,8 +56,8 @@ const OnboardingPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Onboarding Workflow</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage vehicle handoff from assignment to availability.</p>
+        <h1 className="text-2xl font-bold tracking-tight">PDI Check</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Manage the vehicle Pre-Delivery Inspection workflow, including checklist, odometer upload, photo upload, progress tracking and approval.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

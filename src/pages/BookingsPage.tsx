@@ -209,7 +209,7 @@ const BookingsPage = () => {
                       {vehicleOptions.length > 0 ? vehicleOptions.map((v: any) => (
                         <SelectItem key={getVehicleId(v)} value={getVehicleId(v)}>{getVehicleLabel(v)}</SelectItem>
                       )) : (
-                        <SelectItem value="" disabled>No available vehicles</SelectItem>
+                        <SelectItem value="no-vehicle" disabled>No available vehicles</SelectItem>
                       )}
                     </SelectContent>
                   </Select>

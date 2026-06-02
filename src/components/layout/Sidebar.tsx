@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   type LucideIcon,
   LayoutDashboard,
@@ -26,10 +26,11 @@ import { useAuth } from "@/context/AuthContext";
 import type { UserRole } from "@/types";
 
 type SidebarLink = {
-  to: string;
+  to?: string;
   label: string;
   icon: LucideIcon;
   roles: UserRole[];
+  subItems?: SidebarLink[];
 };
 
 type SidebarGroup = {
@@ -42,10 +43,16 @@ const sidebarGroups: SidebarGroup[] = [
     label: "Fleet Operations",
     items: [
       { to: "/leads", label: "Leads", icon: Users, roles: ["admin", "staff"] },
-      { to: "/onboarding", label: "Onboarding", icon: FileCheck, roles: ["admin", "staff"] },
-      { to: "/vehicles", label: "Vehicles", icon: Bike, roles: ["admin", "staff"] },
-      { to: "/bookings", label: "Bookings", icon: CalendarDays, roles: ["admin", "staff"] },
-      { to: "/vehicle-handover", label: "Vehicle Handover", icon: ArrowLeftRight, roles: ["admin"] },
+      {
+        label: "Onboarding",
+        icon: FileCheck,
+        roles: ["admin", "staff"],
+        subItems: [
+          { to: "/vehicles", label: "Vehicles", icon: Bike, roles: ["admin", "staff"] },
+          { to: "/onboarding", label: "PDI Check", icon: FileCheck, roles: ["admin", "staff"] },
+          { to: "/bookings", label: "Bookings", icon: CalendarDays, roles: ["admin", "staff"] },
+        ],
+      },
     ],
   },
   {
@@ -92,12 +99,19 @@ const Sidebar = () => {
   const { role, logout } = useAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
+  const location = useLocation();
+
   const groups = useMemo(
     () =>
       sidebarGroups
         .map((group) => ({
           ...group,
-          items: group.items.filter((item) => item.roles.includes(role ?? "admin")),
+          items: group.items
+            .map((item) => ({
+              ...item,
+              subItems: item.subItems?.filter((sub) => sub.roles.includes(role ?? "admin")),
+            }))
+            .filter((item) => item.roles.includes(role ?? "admin") || (item.subItems?.length ?? 0) > 0),
         }))
         .filter((group) => group.items.length > 0),
     [role],
@@ -172,23 +186,64 @@ const Sidebar = () => {
                 </button>
                 <div className={`overflow-hidden transition-[max-height] duration-200 ${isOpen ? "max-h-72" : "max-h-0"}`}>
                   <div className="space-y-1 pl-10 pr-3 pb-1">
-                    {group.items.map(({ to, label, icon: Icon }) => (
-                      <NavLink
-                        key={to}
-                        to={to}
-                        end={to === "/"}
-                        className={({ isActive }) =>
-                          `group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
-                            isActive
-                              ? "bg-sidebar-active text-sidebar-active-foreground shadow-[0_4px_14px_-4px_hsl(var(--sidebar-active)/0.5)]"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
-                          } transition-all duration-200`
-                        }
-                      >
-                        <Icon size={16} className="shrink-0" />
-                        <span>{label}</span>
-                      </NavLink>
-                    ))}
+                    {group.items.map((item) => {
+                      if (item.subItems) {
+                        const isOpenItem = openGroups[item.label] ?? item.subItems.some((sub) => location.pathname === sub.to);
+                        return (
+                          <div key={item.label}>
+                            <button
+                              type="button"
+                              aria-expanded={isOpenItem ? "true" : "false"}
+                              onClick={() => handleToggleGroup(item.label)}
+                              className="flex w-full items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/80 transition-colors hover:text-sidebar-accent-foreground"
+                            >
+                              <div className="flex items-center gap-3">
+                                <item.icon size={16} className="shrink-0" />
+                                <span>{item.label}</span>
+                              </div>
+                              <ChevronDown size={16} className={`transition-transform duration-200 ${isOpenItem ? "rotate-180" : ""}`} />
+                            </button>
+                            <div className={`overflow-hidden transition-[max-height] duration-200 ${isOpenItem ? "max-h-72" : "max-h-0"}`}>
+                              <div className="space-y-1 pl-10 pr-3 pb-1">
+                                {item.subItems.map(({ to, label, icon: Icon }) => (
+                                  <NavLink
+                                    key={to}
+                                    to={to!}
+                                    className={({ isActive }) =>
+                                      `group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                                        isActive
+                                          ? "bg-sidebar-active text-sidebar-active-foreground shadow-[0_4px_14px_-4px_hsl(var(--sidebar-active)/0.5)]"
+                                          : "text-sidebar-foreground/70 hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
+                                      } transition-all duration-200`
+                                    }
+                                  >
+                                    <Icon size={16} className="shrink-0" />
+                                    <span>{label}</span>
+                                  </NavLink>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to!}
+                          className={({ isActive }) =>
+                            `group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                              isActive
+                                ? "bg-sidebar-active text-sidebar-active-foreground shadow-[0_4px_14px_-4px_hsl(var(--sidebar-active)/0.5)]"
+                                : "text-sidebar-foreground/70 hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
+                            } transition-all duration-200`
+                          }
+                        >
+                          <item.icon size={16} className="shrink-0" />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

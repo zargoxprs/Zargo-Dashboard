@@ -22,7 +22,6 @@ import EmployeesPage from "@/pages/EmployeesPage";
 import ChangePassword from "@/pages/ChangePassword";
 import ReportsPage from "@/pages/ReportsPage";
 import SecurityDepositsPage from "@/pages/SecurityDepositsPage";
-import VehicleHandoverPage from "@/pages/VehicleHandoverPage";
 import CrmDashboardPage from "@/pages/CrmDashboardPage";
 import CrmFollowUpCenterPage from "@/pages/CrmFollowUpCenterPage";
 import CrmCustomerTimelinePage from "@/pages/CrmCustomerTimelinePage";
@@ -65,7 +64,6 @@ const App = () => (
                 <Route path="/crm/follow-ups" element={<CrmFollowUpCenterPage />} />
                 <Route path="/crm/customer-history" element={<CrmCustomerTimelinePage />} />
                 <Route path="/crm/recovery-queue" element={<CrmRecoveryQueuePage />} />
-                <Route path="/vehicle-handover" element={<ProtectedRoute requiredRole="admin"><VehicleHandoverPage /></ProtectedRoute>} />
                 <Route path="/tasks" element={<ProtectedRoute requiredRole="staff"><TasksPage /></ProtectedRoute>} />
                 <Route path="/employees" element={<ProtectedRoute requiredRole="admin"><EmployeesPage /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute>} />
