@@ -13,6 +13,7 @@ const employeeRoutes = require("./routes/employeeRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const reportRoutes = require("./routes/reportRoutes");
+const leadRoutes = require("./routes/leadRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +46,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/leads", leadRoutes);
 
 app.use("/api/reports", reportRoutes);
 

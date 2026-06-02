@@ -18,8 +18,9 @@ exports.create = async (req, res, next) => {
       ...req.body,
       bookingId: req.body.bookingId || `BKG-${Date.now()}`,
     };
-    const item = await Booking.create(payload);    if (item.vehicle && item.status === "active") {
-      await Vehicle.findByIdAndUpdate(item.vehicle, { status: "rented" });
+    const item = await Booking.create(payload);
+    if (item.vehicle && item.status === "active") {
+      await Vehicle.findByIdAndUpdate(item.vehicle, { status: "booked" });
     }
     res.status(201).json(item);
   } catch (e) { next(e); }
@@ -28,6 +29,16 @@ exports.update = async (req, res, next) => {
   try {
     const item = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!item) return res.status(404).json({ message: "Booking not found" });
+
+    if (item.vehicle && req.body.status) {
+      if (["active", "pending", "overdue"].includes(req.body.status)) {
+        await Vehicle.findByIdAndUpdate(item.vehicle, { status: "booked" });
+      }
+      if (req.body.status === "completed") {
+        await Vehicle.findByIdAndUpdate(item.vehicle, { status: "available" });
+      }
+    }
+
     res.json(item);
   } catch (e) { next(e); }
 };

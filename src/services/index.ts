@@ -5,3 +5,4 @@ export { alertService } from "./alertService";
 export { employeeService } from "./employeeService";
 export { dashboardService } from "./dashboardService";
 export { reportService } from "./reportService";
+export { leadService } from "./leadService";

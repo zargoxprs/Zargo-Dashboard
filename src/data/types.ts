@@ -1,14 +1,10 @@
 export interface Vehicle {
-
   _id: string;
   vehicleId: string;
   model: string;
   numberPlate: string;
-  battery: number;
-  status: "available" | "rented" | "service" | "idle";
+  status: "available" | "pdi_pending" | "booked" | "service";
   hub: string;
-  health: "good" | "fair" | "poor";
-  lastServiceDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +23,16 @@ export interface Booking {
   amount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Lead {
+  id: string;
+  customerName: string;
+  contact: string;
+  source: string;
+  stage: "new" | "contacted" | "qualified" | "converted" | "rejected";
+  assignedTo: string;
+  createdAt: string;
 }
 
 export interface Alert {

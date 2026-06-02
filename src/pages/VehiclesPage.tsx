@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useVehicles, useAddVehicle, useDeleteVehicle } from "@/hooks/useVehicles";
 import { useAuth } from "@/context/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
-import { Plus, Trash2, MoreVertical, Battery, Truck, CalendarDays, Wrench } from "lucide-react";
+import { Plus, Trash2, MoreVertical, Truck, CalendarDays, Wrench, FileCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from "@/lib/utils";
 import StatCard from "@/components/StatCard";
 import { useDateFilter } from "@/context/DateFilterContext";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 const MODELS = ["Quanta S", "Quanta S+"];
 const HUBS = ["Kukatpally", "Madhapur", "Gachibowli"];
@@ -31,23 +31,15 @@ const VehiclesPage = () => {
   const [open, setOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
-  const [form, setForm] = useState({ vehicleId: "", numberPlate: "", model: "", status: "available" as Vehicle["status"], hub: "" });
+  const [form, setForm] = useState({ vehicleId: "", numberPlate: "", model: "", status: "pdi_pending" as Vehicle["status"], hub: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Remove mock extras, use backend data
   const statusDot: Record<string, string> = {
     available: "bg-success",
-    rented: "bg-primary",
-    service: "bg-warning",
-    idle: "bg-muted-foreground",
-  };
-  const healthColor: Record<string, string> = {
-
-    good: "text-success",
-    fair: "text-warning",
-    poor: "text-destructive",
+    pdi_pending: "bg-warning",
+    booked: "bg-primary",
+    service: "bg-destructive",
   };
 
   const handleSubmit = () => {
@@ -62,8 +54,7 @@ const VehiclesPage = () => {
 
     addVehicle.mutate(form, {
       onSuccess: () => {
-
-        setForm({ vehicleId: "", numberPlate: "", model: "", status: "available", hub: "" });
+        setForm({ vehicleId: "", numberPlate: "", model: "", status: "pdi_pending", hub: "" });
         setErrors({});
         setOpen(false);
       },
@@ -97,15 +88,16 @@ const VehiclesPage = () => {
   }, [vehicles, statusFilter, q, range]);
 
   const statsCards = [
-    { key: "total", title: "Total Vehicles", value: vehicles.length, icon: Truck, accent: "primary", subtitle: "+2 added this month" },
-    { key: "available", title: "Available", value: vehicles.filter((v) => v.status === "available").length, icon: Battery, accent: "success", subtitle: "Ready to deploy" },
-    { key: "rented", title: "Rented", value: vehicles.filter((v) => v.status === "rented").length, icon: CalendarDays, accent: "accent", subtitle: "Currently rented" },
-    { key: "service", title: "Service / Maintenance", value: vehicles.filter((v) => v.status === "service").length, icon: Wrench, accent: "warning", subtitle: "Needs service attention" },
+    { key: "total", title: "Total Vehicles", value: vehicles.length, icon: Truck, accent: "primary", subtitle: "Current fleet size" },
+    { key: "available", title: "Available", value: vehicles.filter((v) => v.status === "available").length, icon: FileCheck, accent: "success", subtitle: "Ready for dispatch" },
+    { key: "pdi_pending", title: "PDI Pending", value: vehicles.filter((v) => v.status === "pdi_pending").length, icon: AlertTriangle, accent: "warning", subtitle: "Pending PDI checks" },
+    { key: "booked", title: "Booked", value: vehicles.filter((v) => v.status === "booked").length, icon: CalendarDays, accent: "accent", subtitle: "Reserved for customers" },
+    { key: "service", title: "Service", value: vehicles.filter((v) => v.status === "service").length, icon: Wrench, accent: "warning", subtitle: "Under repair" },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {statsCards.map((c) => (
           <div key={c.key} onClick={() => setStatusFilter(c.key === "total" ? null : c.key)} className={`cursor-pointer ${statusFilter === c.key ? "ring-2 ring-primary/30" : ""}`}>
             <StatCard title={c.title} value={c.value} icon={c.icon} accent={c.accent as any} subtitle={c.subtitle} />
@@ -157,15 +149,15 @@ const VehiclesPage = () => {
               </div>
               <div className="space-y-1.5">
                 <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Vehicle["status"] })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="rented">Rented</SelectItem>
-                  <SelectItem value="service">Service</SelectItem>
-                  <SelectItem value="idle">Idle</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Vehicle["status"] })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdi_pending">PDI Pending</SelectItem>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="booked">Booked</SelectItem>
+                    <SelectItem value="service">Service</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Button className="w-full" onClick={handleSubmit}>Save</Button>
             </div>
@@ -175,7 +167,7 @@ const VehiclesPage = () => {
 
       <div className="bg-card rounded-xl border overflow-x-auto">
         {vehiclesQ.isLoading ? (
-          <TableSkeleton rows={6} cols={8} />
+          <TableSkeleton rows={6} cols={6} />
         ) : vehiclesQ.error ? (
           <ErrorState message="Failed to load vehicles" onRetry={() => vehiclesQ.refetch()} />
         ) : vehicles.length === 0 ? (
@@ -185,7 +177,7 @@ const VehiclesPage = () => {
           <thead className="sticky top-0 bg-muted/60 z-10">
             <tr className="border-b">
 
-              {["ID", "Number Plate", "Model", "Hub", "Battery", "Last Service", "Health", "Status", ""].map((h) => (
+              {["ID", "Number Plate", "Model", "Hub", "Status", ""].map((h) => (
                 <th key={h} className="text-left px-5 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -203,18 +195,6 @@ const VehiclesPage = () => {
                   <td className="px-5 py-3 whitespace-nowrap font-mono text-xs">{v.numberPlate}</td>
                   <td className="px-5 py-3 whitespace-nowrap">{v.model}</td>
                   <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{v.hub}</td>
-                  <td className="px-5 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-
-                      <Battery size={14} className={v.battery > 50 ? "text-success" : "text-warning"} />
-                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className={cn("h-full rounded-full", v.battery > 50 ? "bg-success" : "bg-warning")} style={{ width: `${v.battery}%` }} />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{v.battery}%</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{v.lastServiceDate ? new Date(v.lastServiceDate).toLocaleDateString() : "N/A"}</td>
-                  <td className={cn("px-5 py-3 whitespace-nowrap font-medium", healthColor[v.health])}>{v.health}</td>
                   <td className="px-5 py-3 whitespace-nowrap"><StatusBadge status={v.status} /></td>
                   <td className="px-5 py-3 whitespace-nowrap text-right">
                     {role === "admin" ? (

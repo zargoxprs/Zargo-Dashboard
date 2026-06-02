@@ -9,7 +9,8 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useBookings } from "@/hooks/useBookings";
 import { useAlerts } from "@/hooks/useAlerts";
-import { leads, renewals, recoveries, returns as returnWorkflows, insurances, serviceJobs, workflowTasks } from "@/data/workflows";
+import { useLeads } from "@/hooks/useLeads";
+import { renewals, recoveries, returns as returnWorkflows, insurances, serviceJobs, workflowTasks } from "@/data/workflows";
 import { StatCardsSkeleton, TableSkeleton } from "@/components/states/LoadingSkeleton";
 import { ErrorState } from "@/components/states/ErrorState";
 
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const bookings = bookingsQ.data ?? [];
   const alerts = alertsQ.data ?? [];
   const employees = Array.isArray(employeesQ.data) ? employeesQ.data : [];
+  const leadsQ = useLeads();
   const [taskQueue, setTaskQueue] = useState<TaskWithNotes[]>(workflowTasks);
   const [selectedTask, setSelectedTask] = useState<TaskWithNotes | null>(null);
   const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
@@ -42,7 +44,7 @@ const Dashboard = () => {
   const openServiceJobs = serviceJobs.filter((job) => job.status !== "completed").length;
   const pendingRefundApprovals = returnWorkflows.filter((r) => r.refundRequested && !r.refundApproved).length;
   const staffTasksOpen = workflowTasks.filter((task) => task.status !== "completed").length;
-  const leadsWaiting = leads.length;
+  const leadsWaiting = leadsQ.data?.length ?? 0;
   const assignedTasks = taskQueue.filter((task) => task.assignedTo.toLowerCase() === (user?.name ?? "").toLowerCase());
   const pendingPrdTasks = assignedTasks.filter((task) => task.status === "awaiting-approval").length;
   const unreadAlerts = alerts.filter((a) => a.status === "unread").length;
@@ -65,7 +67,7 @@ const Dashboard = () => {
     return `₹${n.toLocaleString()}`;
   };
   const utilizationPercentage = stats?.totalVehicles ? Math.round((stats.deployedVehicles / stats.totalVehicles) * 100) : 0;
-  const utilizationSummary = `${stats?.deployedVehicles ?? 0} of ${stats?.totalVehicles ?? 0} vehicles rented`;
+  const utilizationSummary = `${stats?.deployedVehicles ?? 0} of ${stats?.totalVehicles ?? 0} vehicles booked`;
 
   const formatDate = (date: string) => {
     if (!date) return "";
@@ -252,7 +254,7 @@ const Dashboard = () => {
             <ErrorState message="Failed to load stats" onRetry={() => statsQ.refetch()} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard title="Active Rentals" value={stats.deployedVehicles} icon={CalendarDays} accent="primary" subtitle="Currently rented" />
+              <StatCard title="Active Rentals" value={stats.deployedVehicles} icon={CalendarDays} accent="primary" subtitle="Currently booked" />
               <StatCard title="Monthly Revenue" value={formatRevenue(monthlyRevenue)} icon={CreditCard} accent="primary" subtitle="Revenue generated during selected date range" />
               <StatCard title="Available Vehicles" value={stats.availableVehicles} icon={Battery} accent="success" subtitle="Ready for dispatch" />
               <StatCard title="Pending Returns" value={returnWorkflows.filter((r) => !r.accountClosed).length} icon={ArrowLeftRight} accent="accent" subtitle="Needs attention" />

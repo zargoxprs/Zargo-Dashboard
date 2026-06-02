@@ -20,7 +20,7 @@ export const dashboardService = {
         return {
           totalVehicles: vehicles.length,
           availableVehicles: vehicles.filter((v) => v.status === "available").length,
-          deployedVehicles: vehicles.filter((v) => v.status === "rented").length,
+          deployedVehicles: vehicles.filter((v) => v.status === "booked").length,
           activeRentals: filteredBookings.filter((b) => (b as any).status === "active").length,
           overdueVehicles: filteredBookings.filter((b) => (b as any).status === "overdue").length,
           totalCustomers: new Set(filteredBookings.map((b) => (b as any).phone)).size,

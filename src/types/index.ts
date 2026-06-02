@@ -16,19 +16,15 @@ export interface AuthResponse {
   user: User;
 }
 
-export type VehicleStatus = "available" | "rented" | "service" | "idle";
+export type VehicleStatus = "available" | "pdi_pending" | "booked" | "service";
 
 export interface Vehicle {
-
   _id: string;
   vehicleId: string;
   numberPlate: string;
   model: string;
-  battery: number;
   status: VehicleStatus;
   hub: string;
-  health: "good" | "fair" | "poor";
-  lastServiceDate?: string;
   createdAt: string;
   updatedAt: string;
 }

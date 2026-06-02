@@ -24,9 +24,11 @@ const ReportsPage = () => {
 
   const statusColors: Record<string, string> = {
     available: "hsl(142 71% 42%)",
-    rented: "hsl(216 100% 50%)",
+    pdi_pending: "hsl(43 100% 50%)",
+    booked: "hsl(216 100% 50%)",
     service: "hsl(38 92% 50%)",
     idle: "hsl(220 10% 60%)",
+    rented: "hsl(216 100% 50%)",
   };
   const vehicleData = data.vehicleStatusBreakdown.map((d) => ({ ...d, color: statusColors[d.name] }));
   const trendData = data.rentalTrend;

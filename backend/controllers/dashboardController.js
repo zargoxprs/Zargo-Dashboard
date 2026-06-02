@@ -13,7 +13,7 @@ exports.stats = async (_req, res, next) => {
     res.json({
       totalVehicles: vehicles.length,
       availableVehicles: vehicles.filter((v) => v.status === "available").length,
-      deployedVehicles: vehicles.filter((v) => v.status === "rented").length,
+      deployedVehicles: vehicles.filter((v) => v.status === "booked").length,
       activeRentals: bookings.filter((b) => b.status === "active").length,
       overdueVehicles: bookings.filter((b) => b.status === "overdue").length,
       totalCustomers: new Set(bookings.map((b) => b.phone)).size,

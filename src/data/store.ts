@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Vehicle, Booking, Alert, Employee } from "./types";
+import { Vehicle, Booking, Alert, Employee, Lead } from "./types";
 
 
 function generateAlerts(bookings: Booking[], existingAlerts: Alert[]): Alert[] {
@@ -54,6 +54,7 @@ interface AppState {
   alerts: Alert[];
   activities: import("@/types").Activity[];
   employees: Employee[];
+  leads: Lead[];
   addVehicle: (v: Omit<Vehicle, "id" | "created_at">) => void;
   updateVehicle: (id: string, v: Partial<Vehicle>) => void;
   deleteVehicle: (id: string) => void;
@@ -65,6 +66,8 @@ interface AppState {
   addEmployee: (e: Omit<Employee, "id">) => void;
   removeEmployee: (id: string) => void;
   updateEmployeeCount: (id: string, count: number) => void;
+  addLead: (l: Omit<Lead, "id" | "createdAt">) => void;
+  updateLead: (id: string, lead: Partial<Lead>) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -74,6 +77,7 @@ export const useStore = create<AppState>((set) => ({
   alerts: [],
   activities: [],
   employees: [],
+  leads: [],
 
   addVehicle: (v) => set((s) => ({
     vehicles: [...s.vehicles, { ...v, id: `V${String(s.vehicles.length + 1).padStart(3, "0")}`, created_at: new Date().toISOString().split("T")[0] }],
@@ -100,6 +104,12 @@ export const useStore = create<AppState>((set) => ({
     const newActivity = { id: `ACT-${s.activities.length + 1}`, type: "booking", message: msg, created_at: new Date().toISOString() };
     return { bookings: updated, alerts: generateAlerts(updated, s.alerts), activities: [newActivity, ...s.activities] };
   }),
+  addLead: (l) => set((s) => ({
+    leads: [...s.leads, { ...l, id: `L${String(s.leads.length + 1).padStart(3, "0")}`, createdAt: new Date().toISOString() }],
+  })),
+  updateLead: (id, lead) => set((s) => ({
+    leads: s.leads.map((x) => (x.id === id ? { ...x, ...lead } : x)),
+  })),
   addAlert: (a) => set((s) => ({
     alerts: [{ ...a, id: `A${s.alerts.length + 1}`, created_at: new Date().toISOString().split("T")[0] }, ...s.alerts],
     activities: [{ id: `ACT-${s.activities.length + 1}`, type: "alert", message: a.message, created_at: new Date().toISOString() }, ...s.activities],

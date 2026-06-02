@@ -7,7 +7,7 @@ export const reportService = {
     return mockOr(
       () => {
         const { vehicles, bookings, employees } = useStore.getState();
-        const vStatuses: VehicleStatus[] = ["available", "rented", "service", "idle"];
+        const vStatuses: VehicleStatus[] = ["available", "pdi_pending", "booked", "service"];
         const bStatuses: BookingStatus[] = ["active", "pending", "overdue", "completed"];
 
         // apply optional date filter to bookings

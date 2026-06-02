@@ -20,7 +20,7 @@ exports.summary = async (_req, res, next) => {
       Employee.find(),
     ]);
 
-    const vehicleStatusBreakdown = ["available", "rented", "service", "idle"].map((status) => ({
+    const vehicleStatusBreakdown = ["available", "pdi_pending", "booked", "service"].map((status) => ({
       name: status,
       value: vehicles.filter((v) => v.status === status).length,
     }));
