@@ -169,7 +169,7 @@ const BookingsPage = () => {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus size={16} className="mr-2" />Add Booking</Button>
+            <Button><Plus size={16} className="mr-2" />Add A Booking</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Add Booking</DialogTitle></DialogHeader>
