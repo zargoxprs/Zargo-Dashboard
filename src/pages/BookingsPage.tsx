@@ -27,6 +27,8 @@ interface BookingForm {
   kmUsed: number;
   status: BookingStatus;
   amount: number;
+  paymentMethod: "Cash" | "Online";
+  referenceNumber: string;
 }
 
 const rentalPlans = [
@@ -46,7 +48,7 @@ const BookingsPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedPlanId, setSelectedPlanId] = useState(rentalPlans[0].id);
-  const [form, setForm] = useState<BookingForm>({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: rentalPlans[0].kmLimit, kmUsed: 0, status: "active", amount: rentalPlans[0].rental });
+  const [form, setForm] = useState<BookingForm>({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: rentalPlans[0].kmLimit, kmUsed: 0, status: "active", amount: rentalPlans[0].rental, paymentMethod: "Cash", referenceNumber: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchParams] = useSearchParams();
   const { range } = useDateFilter();
@@ -54,7 +56,9 @@ const BookingsPage = () => {
 
   const selectedPlan = rentalPlans.find((plan) => plan.id === selectedPlanId) ?? rentalPlans[0];
 
-  const availableVehicles = Array.isArray(vehicles) ? vehicles.filter((v: any) => v?.status === "available") : [];
+  const availableVehicles = Array.isArray(vehicles)
+    ? vehicles.filter((v: any) => v?.status === "available" || v?.status === "ready_for_booking")
+    : [];
   const filteredVehicles = availableVehicles.filter((v: any) => v.model === selectedPlan.model);
   const vehicleOptions = filteredVehicles.length > 0 ? filteredVehicles : availableVehicles;
 
@@ -145,12 +149,19 @@ const BookingsPage = () => {
     if (!form.vehicle) newErrors.vehicle = "Vehicle is required";
     if (!form.startDate) newErrors.startDate = "Start date is required";
     if (!form.endDate) newErrors.endDate = "End date is required";
+    if (!form.referenceNumber.trim()) {
+      if (form.paymentMethod === "Cash") {
+        newErrors.referenceNumber = "Bill Number is required";
+      } else {
+        newErrors.referenceNumber = "UTR Number is required";
+      }
+    }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     addBooking.mutate(form as any, {
       onSuccess: () => {
-        setForm({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: selectedPlan.kmLimit, kmUsed: 0, status: "active", amount: selectedPlan.rental });
+        setForm({ riderName: "", phone: "", vehicle: "", startDate: "", endDate: "", kmLimit: selectedPlan.kmLimit, kmUsed: 0, status: "active", amount: selectedPlan.rental, paymentMethod: "Cash", referenceNumber: "" });
         setSelectedPlanId(rentalPlans[0].id);
         setErrors({});
         setOpen(false);
@@ -169,7 +180,7 @@ const BookingsPage = () => {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus size={16} className="mr-2" />Add A Booking</Button>
+            <Button><Plus size={16} className="mr-2" />Add Booking</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Add Booking</DialogTitle></DialogHeader>
@@ -268,6 +279,28 @@ const BookingsPage = () => {
                 <div className="space-y-1.5">
                   <Label>KM Used</Label>
                   <Input type="number" value={form.kmUsed} onChange={(e) => setForm({ ...form, kmUsed: Number(e.target.value) })} />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Payment Method</Label>
+                  <Select value={form.paymentMethod} onValueChange={(value) => setForm({ ...form, paymentMethod: value as "Cash" | "Online", referenceNumber: "" })}>
+                    <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Online">Online</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{form.paymentMethod === "Cash" ? "Bill Number" : "UTR Number"}</Label>
+                  <Input
+                    placeholder={form.paymentMethod === "Cash" ? "Enter Bill Number" : "Enter UTR Number"}
+                    value={form.referenceNumber}
+                    onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
+                  />
+                  {errors.referenceNumber && <p className="text-xs text-destructive">{errors.referenceNumber}</p>}
                 </div>
               </div>
 

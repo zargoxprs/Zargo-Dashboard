@@ -16,7 +16,24 @@ export interface AuthResponse {
   user: User;
 }
 
-export type VehicleStatus = "available" | "pdi_pending" | "booked" | "service";
+export type VehicleStatus = "available" | "pdi_pending" | "booked" | "service" | "ready_for_booking";
+
+export interface UploadFile {
+  name: string;
+  url: string;
+}
+
+export interface PdiChecklistItem {
+  label: string;
+  done: boolean;
+}
+
+export interface PdiAuditRecord {
+  id: string;
+  action: string;
+  details?: string;
+  timestamp: string;
+}
 
 export interface Vehicle {
   _id: string;
@@ -27,6 +44,15 @@ export interface Vehicle {
   hub: string;
   createdAt: string;
   updatedAt: string;
+  pdiComments?: string;
+  pdiChecklist?: PdiChecklistItem[];
+  pdiHistory?: PdiAuditRecord[];
+  pdiKycLicense?: UploadFile;
+  pdiKycAadhaar?: UploadFile;
+  pdiOdometerPhoto?: UploadFile;
+  pdiVehiclePhotos?: UploadFile[];
+  completedAt?: string;
+  completedBy?: string;
 }
 
 export type BookingStatus = "active" | "completed" | "overdue" | "pending";
