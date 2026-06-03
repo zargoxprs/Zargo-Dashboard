@@ -5,6 +5,7 @@ import { useStore } from "@/data/store";
 const normalizeLead = (lead: any): Lead => ({
   ...lead,
   id: lead.id ?? lead._id,
+  leadId: lead.leadId ?? lead.lead_id,
 });
 
 export const leadService = {

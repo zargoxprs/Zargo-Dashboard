@@ -1,8 +1,33 @@
 const Lead = require("../models/Lead");
 
+const getNextLeadId = async () => {
+  const count = await Lead.countDocuments();
+  return `Ld${String(count + 1).padStart(3, "0")}`;
+};
+
+const fillMissingLeadIds = async (leads) => {
+  const sorted = [...leads].sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    if (aTime !== bTime) return aTime - bTime;
+    return String(a._id).localeCompare(String(b._id));
+  });
+
+  const updatedLeads = await Promise.all(
+    sorted.map(async (lead, index) => {
+      if (lead.leadId) return lead;
+      const generatedId = `Ld${String(index + 1).padStart(3, "0")}`;
+      return await Lead.findByIdAndUpdate(lead._id, { leadId: generatedId }, { new: true });
+    })
+  );
+
+  return updatedLeads.map((lead) => ({ ...lead.toObject(), leadId: lead.leadId }));
+};
+
 exports.list = async (_req, res, next) => {
   try {
-    res.json(await Lead.find().sort({ createdAt: -1 }));
+    const leads = await Lead.find().sort({ createdAt: -1 });
+    res.json(await fillMissingLeadIds(leads));
   } catch (e) {
     next(e);
   }
@@ -20,7 +45,11 @@ exports.get = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    res.status(201).json(await Lead.create(req.body));
+    const payload = {
+      ...req.body,
+      leadId: req.body.leadId || (await getNextLeadId()),
+    };
+    res.status(201).json(await Lead.create(payload));
   } catch (e) {
     next(e);
   }

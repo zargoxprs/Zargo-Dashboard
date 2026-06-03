@@ -1,9 +1,9 @@
 import { Lead, OnboardingWorkflow, RenewalTask, RecoveryCase, ReturnWorkflow, PaymentRecord, InsuranceCase, ServiceJobCard, WorkflowTask } from "@/types";
 
 export const leads: Lead[] = [
-  { id: "L-1001", customerName: "Amit Patel", contact: "+91 98765 43210", source: "Website", stage: "contacted", assignedTo: "Ravi", createdAt: "2026-05-18" },
-  { id: "L-1002", customerName: "Nisha Gupta", contact: "+91 91234 56789", source: "Referral", stage: "qualified", assignedTo: "Meera", createdAt: "2026-05-22" },
-  { id: "L-1003", customerName: "Rohan Singh", contact: "+91 99887 77665", source: "Walk-in", stage: "new", assignedTo: "Ravi", createdAt: "2026-05-28" },
+  { id: "Ld001", customerName: "Amit Patel", contact: "+91 98765 43210", source: "Website", stage: "contacted", assignedTo: "Ravi", createdAt: "2026-05-18" },
+  { id: "Ld002", customerName: "Nisha Gupta", contact: "+91 91234 56789", source: "Referral", stage: "qualified", assignedTo: "Meera", createdAt: "2026-05-22" },
+  { id: "Ld003", customerName: "Rohan Singh", contact: "+91 99887 77665", source: "Walk-in", stage: "new", assignedTo: "Ravi", createdAt: "2026-05-28" },
 ];
 
 export const onboardings: OnboardingWorkflow[] = [

@@ -105,7 +105,7 @@ export const useStore = create<AppState>((set) => ({
     return { bookings: updated, alerts: generateAlerts(updated, s.alerts), activities: [newActivity, ...s.activities] };
   }),
   addLead: (l) => set((s) => ({
-    leads: [...s.leads, { ...l, id: `L${String(s.leads.length + 1).padStart(3, "0")}`, createdAt: new Date().toISOString() }],
+    leads: [...s.leads, { ...l, id: `L${String(s.leads.length + 1).padStart(3, "0")}`, leadId: `Ld${String(s.leads.length + 1).padStart(3, "0")}`, createdAt: new Date().toISOString() }],
   })),
   updateLead: (id, lead) => set((s) => ({
     leads: s.leads.map((x) => (x.id === id ? { ...x, ...lead } : x)),

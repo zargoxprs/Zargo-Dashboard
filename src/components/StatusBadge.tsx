@@ -8,6 +8,7 @@ const colorMap: Record<string, string> = {
   "in-progress": "bg-warning/15 text-warning",
   booked: "bg-primary/15 text-primary",
   "pdi_pending": "bg-warning/15 text-warning",
+  "pdi_checklist": "bg-warning/15 text-warning",
   pending: "bg-warning/15 text-warning",
   due: "bg-warning/15 text-warning",
   overdue: "bg-destructive/15 text-destructive",

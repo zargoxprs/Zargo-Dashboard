@@ -47,6 +47,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/leads", leadRoutes);
+app.use("/api/lead", leadRoutes); // alias for legacy/singular endpoint compatibility
 
 app.use("/api/reports", reportRoutes);
 

@@ -109,11 +109,13 @@ export type LeadStage = "new" | "contacted" | "interested" | "qualified" | "conv
 
 export interface Lead {
   id: string;
+  leadId?: string;
   customerName: string;
   contact: string;
   source: string;
   stage: LeadStage;
   assignedTo: string;
+  notes?: string;
   createdAt: string;
 }
 

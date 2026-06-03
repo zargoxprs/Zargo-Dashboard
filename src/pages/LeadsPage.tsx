@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Users, Phone, MessageCircle, Edit3, Sparkles, ArrowRightCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import StatCard from "@/components/StatCard";
 import { leads as sampleLeads } from "@/data/workflows";
 import { Lead, LeadStage } from "@/types";
 import { useCreateLead, useLeads, useUpdateLead } from "@/hooks/useLeads";
+import { useEmployees } from "@/hooks/useEmployees";
 
 const leadSources = ["Website", "Walk-in", "Referral", "WhatsApp", "Phone Inquiry"];
 const leadStages: { value: LeadStage; label: string }[] = [
@@ -28,13 +30,16 @@ const emptyLeadForm = {
   source: "Website",
   stage: "new" as LeadStage,
   assignedTo: "",
-  createdAt: new Date().toISOString().split("T")[0],
+  notes: "",
 };
 
 const normalizePhone = (phone: string) => phone.replace(/[^0-9]/g, "");
 
+const formatCsvValue = (value: string | number | undefined) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+
 const LeadsPage = () => {
   const leadsQ = useLeads();
+  const employeesQ = useEmployees();
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
 
@@ -54,7 +59,7 @@ const LeadsPage = () => {
       const search = query.toLowerCase();
       return (
         !search ||
-        [lead.id, lead.customerName, lead.contact, lead.source, lead.assignedTo, lead.stage]
+        [lead.leadId ?? lead.id, lead.customerName, lead.contact, lead.source, lead.assignedTo, lead.stage]
           .some((value) => String(value).toLowerCase().includes(search))
       );
     }),
@@ -78,7 +83,7 @@ const LeadsPage = () => {
     const nextErrors: Record<string, string> = {};
     if (!leadForm.customerName.trim()) nextErrors.customerName = "Customer name is required";
     if (!normalizePhone(leadForm.contact)) nextErrors.contact = "A valid phone is required";
-    if (!leadForm.assignedTo.trim()) nextErrors.assignedTo = "Assign an owner";
+    if (!leadForm.assignedTo.trim()) nextErrors.assignedTo = "Assign a staff member to follow up";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -113,6 +118,32 @@ const LeadsPage = () => {
     if (sanitized) window.open(`https://wa.me/${sanitized}`, "_blank");
   };
 
+  const handleExportPipeline = () => {
+    const headers = ["Lead ID", "Customer", "Contact", "Source", "Stage", "Assigned Staff", "Created At"];
+    const rows = leads.map((lead) => [
+      lead.leadId ?? lead.id,
+      lead.customerName,
+      lead.contact,
+      lead.source,
+      lead.stage,
+      lead.assignedTo,
+      lead.createdAt,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map(formatCsvValue).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `leads-pipeline-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const totalLeads = leads.length;
   const activePipeline = leads.filter((lead) => lead.stage !== "converted" && lead.stage !== "rejected").length;
   const convertedLeads = leads.filter((lead) => lead.stage === "converted").length;
@@ -144,7 +175,7 @@ const LeadsPage = () => {
           <Button variant="secondary" onClick={openLeadDialog}>
             <Users size={16} className="mr-2" /> Create Lead
           </Button>
-          <Button className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto" onClick={handleExportPipeline}>
             <Sparkles size={16} className="mr-2" /> Export pipeline
           </Button>
         </div>
@@ -156,14 +187,15 @@ const LeadsPage = () => {
         ) : filtered.length === 0 ? (
           <EmptyState title="No leads found" description="Use search to find leads or add a new lead." />
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed text-sm">
             <thead className="bg-muted/70 text-left text-xs uppercase tracking-[0.18em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3">Lead ID</th>
                 <th className="px-5 py-3">Customer</th>
                 <th className="px-5 py-3">Source</th>
                 <th className="px-5 py-3">Stage</th>
-                <th className="px-5 py-3">Owner</th>
+                <th className="px-5 py-3">Assigned Staff</th>
                 <th className="px-5 py-3">Created</th>
                 <th className="px-5 py-3">Actions</th>
               </tr>
@@ -171,16 +203,17 @@ const LeadsPage = () => {
             <tbody>
               {filtered.map((lead) => (
                 <tr key={lead.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-5 py-4 font-medium">{lead.id}</td>
-                  <td className="px-5 py-4">
-                    <div>{lead.customerName}</div>
-                    <div className="text-xs text-muted-foreground">{lead.contact}</div>
+                  <td className="px-5 py-4 font-medium max-w-[8rem] truncate">{lead.leadId ?? lead.id}</td>
+                  <td className="px-5 py-4 max-w-[16rem] break-words">
+                    <div className="font-medium truncate">{lead.customerName}</div>
+                    <div className="text-xs text-muted-foreground truncate">{lead.contact}</div>
                   </td>
-                  <td className="px-5 py-4">{lead.source}</td>
+                  <td className="px-5 py-4 truncate">{lead.source}</td>
                   <td className="px-5 py-4"><StatusBadge status={lead.stage} /></td>
-                  <td className="px-5 py-4">{lead.assignedTo}</td>
-                  <td className="px-5 py-4 text-muted-foreground">{lead.createdAt}</td>
-                  <td className="px-5 py-4 space-x-1 whitespace-nowrap">
+                  <td className="px-5 py-4 truncate">{lead.assignedTo}</td>
+                  <td className="px-5 py-4 text-muted-foreground truncate">{lead.createdAt}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-1">
                     <button
                       type="button"
                       onClick={() => handleCall(lead.contact)}
@@ -205,19 +238,18 @@ const LeadsPage = () => {
                     <button
                       type="button"
                       disabled={lead.stage === "converted" || lead.stage === "rejected"}
-                      onClick={() => {
-                        // quick convert: only update the lead stage to converted
-                        setLeadList((items) => items.map((item) => (item.id === lead.id ? { ...item, stage: "converted" } : item)));
-                      }}
+                      onClick={() => updateLead.mutate({ id: lead.id, patch: { stage: "converted" } })}
                       className="rounded-full border border-border px-3 py-1 text-xs font-medium text-primary disabled:opacity-40 disabled:pointer-events-none hover:bg-muted"
                     >
-                      <ArrowRightCircle size={14} className="inline mr-1" /> Convert
+                      <ArrowRightCircle size={14} className="inline mr-1" /> {lead.stage === "converted" ? "Converted ✓" : "Mark Converted"}
                     </button>
+                  </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
         )}
       </div>
 
@@ -226,7 +258,7 @@ const LeadsPage = () => {
           <DialogHeader>
             <DialogTitle>Create Lead</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="customerName">Customer Name</Label>
               <Input
@@ -237,7 +269,7 @@ const LeadsPage = () => {
               {errors.customerName ? <p className="text-xs text-destructive mt-1">{errors.customerName}</p> : null}
             </div>
             <div>
-              <Label htmlFor="contact">Contact</Label>
+              <Label htmlFor="contact">Mobile Number</Label>
               <Input
                 id="contact"
                 value={leadForm.contact}
@@ -246,7 +278,7 @@ const LeadsPage = () => {
               {errors.contact ? <p className="text-xs text-destructive mt-1">{errors.contact}</p> : null}
             </div>
             <div>
-              <Label htmlFor="source">Source</Label>
+              <Label htmlFor="source">Lead Source</Label>
               <Select value={leadForm.source} onValueChange={(value) => setLeadForm((prev) => ({ ...prev, source: value }))}>
                 <SelectTrigger id="source">
                   <SelectValue placeholder="Select source" />
@@ -259,12 +291,30 @@ const LeadsPage = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="assignedTo">Owner</Label>
-              <Input
-                id="assignedTo"
-                value={leadForm.assignedTo}
-                onChange={(e) => setLeadForm((prev) => ({ ...prev, assignedTo: e.target.value }))}
-              />
+              <Label htmlFor="assignedTo">Assigned Staff</Label>
+              {employeesQ.data && employeesQ.data.length > 0 ? (
+                <Select
+                  value={leadForm.assignedTo}
+                  onValueChange={(value) => setLeadForm((prev) => ({ ...prev, assignedTo: value }))}
+                >
+                  <SelectTrigger id="assignedTo">
+                    <SelectValue placeholder="Select staff" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employeesQ.data.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.name}>{employee.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="assignedTo"
+                  placeholder="Enter staff name"
+                  value={leadForm.assignedTo}
+                  onChange={(e) => setLeadForm((prev) => ({ ...prev, assignedTo: e.target.value }))}
+                />
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Staff responsible for follow-up on this lead.</p>
               {errors.assignedTo ? <p className="text-xs text-destructive mt-1">{errors.assignedTo}</p> : null}
             </div>
             <div>
@@ -279,6 +329,14 @@ const LeadsPage = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={leadForm.notes}
+                onChange={(e) => setLeadForm((prev) => ({ ...prev, notes: e.target.value }))}
+              />
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
