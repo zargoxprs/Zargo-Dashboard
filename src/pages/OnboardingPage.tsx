@@ -1,7 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import { Bike, AlertTriangle, Battery, Wrench, Plus, Check, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from "lucide-react";
 import { useVehicles, useUpdateVehicle, useAddVehicle } from "@/hooks/useVehicles";
-import { useEmployees } from "@/hooks/useEmployees";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
@@ -119,7 +118,11 @@ const OnboardingPage = () => {
   const buildPdiVehicle = (vehicle: Vehicle, existing?: Partial<PdiVehicle>): PdiVehicle => ({
     ...vehicle,
     comments: existing?.comments ?? vehicle.pdiComments ?? "",
-    checklist: existing?.checklist ?? vehicle.pdiChecklist ?? DEFAULT_CHECKLIST,
+    checklist: existing?.checklist?.length
+      ? existing.checklist
+      : vehicle.pdiChecklist?.length
+        ? vehicle.pdiChecklist
+        : DEFAULT_CHECKLIST,
     history: existing?.history ?? vehicle.pdiHistory ?? [
       {
         id: `${getVehicleKey(vehicle)}-history-1`,
@@ -261,10 +264,7 @@ const OnboardingPage = () => {
   };
 
   // Add vehicle form - searchable dropdown
-  const employeesQ = useEmployees();
-  const employees = Array.isArray(employeesQ.data) ? employeesQ.data : [];
-  
-  const [addForm, setAddForm] = useState({ vehicleId: "", searchText: "", assignedTo: "" });
+  const [addForm, setAddForm] = useState({ vehicleId: "", searchText: "" });
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
   
   const eligibleVehicles = useMemo(
@@ -292,7 +292,7 @@ const OnboardingPage = () => {
     updateVehicleMutation.mutate({ id: addForm.vehicleId, patch: { status: "pdi_pending" } }, {
       onSuccess: () => {
         setOpenAddDialog(false);
-        setAddForm({ vehicleId: "", searchText: "", assignedTo: "" });
+        setAddForm({ vehicleId: "", searchText: "" });
         setTimeout(() => openPdiModal(addForm.vehicleId), 250);
       },
     });
@@ -441,58 +441,58 @@ const OnboardingPage = () => {
             )}
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto space-y-6 py-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4">
             {selectedVehicle ? (
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="rounded-3xl border border-border p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-semibold">Checklist</p>
-                      <span className="text-xs text-muted-foreground">{selectedVehicle.checklist.filter((step) => step.done).length}/{selectedVehicle.checklist.length}</span>
+              <div className="space-y-6">
+                <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+                  <div className="space-y-4">
+                    <div className="rounded-3xl border border-border p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-semibold">Checklist</p>
+                        <span className="text-xs text-muted-foreground">{selectedVehicle.checklist.filter((step) => step.done).length}/{selectedVehicle.checklist.length}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {isReadOnly ? (
+                          selectedVehicle.checklist.map((step) => (
+                            <div key={step.label} className="w-full flex items-center gap-3 rounded-2xl border border-border px-3 py-3 text-sm bg-background">
+                              <Check size={16} className={step.done ? "text-success" : "text-muted-foreground"} />
+                              <span className={step.done ? "text-success font-semibold" : "text-muted-foreground"}>{step.label}</span>
+                            </div>
+                          ))
+                        ) : (
+                          selectedVehicle.checklist.map((step, index) => (
+                            <button
+                              key={step.label}
+                              type="button"
+                              onClick={() => handleToggleChecklist(index)}
+                              className="w-full flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
+                            >
+                              <span className="flex-1">{step.label}</span>
+                              <span className={`ml-3 flex-shrink-0 font-semibold ${step.done ? "text-success" : "text-muted-foreground"}`}>
+                                {step.done ? "Done" : "Pending"}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
-                    <div className="grid gap-2">
+
+                    <div className="rounded-3xl border border-border p-4 min-h-[180px]">
+                      <p className="text-sm font-semibold mb-3">Comments</p>
                       {isReadOnly ? (
-                        selectedVehicle.checklist.map((step) => (
-                          <div key={step.label} className="flex items-center gap-3 rounded-2xl border border-border px-3 py-2 text-sm bg-background">
-                            <Check size={16} className={step.done ? "text-success" : "text-muted-foreground"} />
-                            <span className={step.done ? "text-success font-semibold" : "text-muted-foreground"}>{step.label}</span>
-                          </div>
-                        ))
+                        <div className="min-h-[180px] rounded-2xl border border-border bg-background p-4 text-sm text-muted-foreground">{selectedVehicle.comments || "—"}</div>
                       ) : (
-                        selectedVehicle.checklist.map((step, index) => (
-                          <button
-                            key={step.label}
-                            type="button"
-                            onClick={() => handleToggleChecklist(index)}
-                            className="flex items-center justify-between rounded-2xl border border-border px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
-                          >
-                            <span>{step.label}</span>
-                            <span className={step.done ? "text-success font-semibold" : "text-muted-foreground"}>
-                              {step.done ? "Done" : "Pending"}
-                            </span>
-                          </button>
-                        ))
+                        <Textarea id="pdi-comments" value={selectedVehicle.comments} onChange={(e) => updateSelectedVehicle({ comments: e.target.value })} className="min-h-[180px]" />
                       )}
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-border p-4">
-                    <p className="text-sm font-semibold mb-3">Comments</p>
-                    {isReadOnly ? (
-                      <div className="min-h-[120px] rounded-2xl border border-border bg-background p-4 text-sm text-muted-foreground">{selectedVehicle.comments || "—"}</div>
-                    ) : (
-                      <Textarea id="pdi-comments" value={selectedVehicle.comments} onChange={(e) => updateSelectedVehicle({ comments: e.target.value })} className="min-h-[120px]" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-3xl border border-border p-4">
-                    <p className="text-sm font-semibold mb-3">Documents</p>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm font-medium">Driving Licence</p>
-                        <div className="mt-2">
+                  <div className="space-y-4">
+                    <div className="rounded-3xl border border-border p-4 min-h-[420px]">
+                      <p className="text-sm font-semibold mb-4">Documents</p>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Driving Licence</p>
                           {!isReadOnly && (
                             <Input id="kyc-license" type="file" accept="image/*" onChange={(e) => handleFileUpload("kycLicense", e.target.files)} />
                           )}
@@ -504,14 +504,12 @@ const OnboardingPage = () => {
                               <p className="mt-2 truncate">{selectedVehicle.kycLicense.name}</p>
                             </div>
                           ) : (
-                            <p className="mt-2 text-xs text-muted-foreground">No file uploaded</p>
+                            <p className="text-xs text-muted-foreground">No file uploaded</p>
                           )}
                         </div>
-                      </div>
 
-                      <div>
-                        <p className="text-sm font-medium">Aadhaar</p>
-                        <div className="mt-2">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Aadhaar</p>
                           {!isReadOnly && (
                             <Input id="kyc-aadhaar" type="file" accept="image/*" onChange={(e) => handleFileUpload("kycAadhaar", e.target.files)} />
                           )}
@@ -523,14 +521,12 @@ const OnboardingPage = () => {
                               <p className="mt-2 truncate">{selectedVehicle.kycAadhaar.name}</p>
                             </div>
                           ) : (
-                            <p className="mt-2 text-xs text-muted-foreground">No file uploaded</p>
+                            <p className="text-xs text-muted-foreground">No file uploaded</p>
                           )}
                         </div>
-                      </div>
 
-                      <div>
-                        <p className="text-sm font-medium">Odometer Photo</p>
-                        <div className="mt-2">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Odometer Photo</p>
                           {!isReadOnly && (
                             <Input id="odometer-upload" type="file" accept="image/*" onChange={(e) => handleFileUpload("odometerPhoto", e.target.files)} />
                           )}
@@ -542,29 +538,26 @@ const OnboardingPage = () => {
                               <p className="mt-2 truncate">{selectedVehicle.odometerPhoto.name}</p>
                             </div>
                           ) : (
-                            <p className="mt-2 text-xs text-muted-foreground">No file uploaded</p>
+                            <p className="text-xs text-muted-foreground">No file uploaded</p>
                           )}
                         </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="rounded-3xl border border-border p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-semibold">Vehicle Photos</p>
-                      <span className="text-xs text-muted-foreground">{selectedVehicle.vehiclePhotos.length}</span>
-                    </div>
-                    {!isReadOnly && (
-                      <Input id="vehicle-photos-upload" type="file" accept="image/*" multiple onChange={(e) => handleFileUpload("vehiclePhotos", e.target.files)} />
-                    )}
-                    <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
-                      {selectedVehicle.vehiclePhotos.map((file, index) => (
-                        <div key={`${file.url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-border bg-background">
-                          <button type="button" onClick={() => openImageViewer(selectedVehicle.vehiclePhotos, index)} className="h-full w-full overflow-hidden">
-                            <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
-                          </button>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Vehicle Photos</p>
+                          {!isReadOnly && (
+                            <Input id="vehicle-photos-upload" type="file" accept="image/*" multiple onChange={(e) => handleFileUpload("vehiclePhotos", e.target.files)} />
+                          )}
+                          <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {selectedVehicle.vehiclePhotos.map((file, index) => (
+                              <div key={`${file.url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-border bg-background">
+                                <button type="button" onClick={() => openImageViewer(selectedVehicle.vehiclePhotos, index)} className="h-full w-full overflow-hidden">
+                                  <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -638,20 +631,6 @@ const OnboardingPage = () => {
                   <p className="text-xs text-muted-foreground">{selectedVehicleForAdd.numberPlate} • {selectedVehicleForAdd.model} • {selectedVehicleForAdd.hub}</p>
                 </div>
               )}
-            </div>
-
-            <div>
-              <Label>Assigned Staff (optional)</Label>
-              <select
-                value={addForm.assignedTo}
-                onChange={(e) => setAddForm((s) => ({ ...s, assignedTo: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-2xl text-sm bg-background"
-              >
-                <option value="">Select staff...</option>
-                {employees.map((emp: any) => (
-                  <option key={emp.id} value={emp.name}>{emp.name}</option>
-                ))}
-              </select>
             </div>
           </div>
 

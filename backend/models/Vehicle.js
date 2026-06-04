@@ -1,5 +1,15 @@
 const mongoose = require("mongoose");
 
+const DEFAULT_PDI_CHECKLIST = [
+  { label: "Battery Health", done: false },
+  { label: "Tyre Pressure", done: false },
+  { label: "Charger", done: false },
+  { label: "Brakes", done: false },
+  { label: "Lights", done: false },
+  { label: "Indicators", done: false },
+  { label: "Horn", done: false },
+];
+
 const VehicleSchema = new mongoose.Schema(
   {
     vehicleId: { type: String, required: true, unique: true, trim: true },
@@ -12,12 +22,15 @@ const VehicleSchema = new mongoose.Schema(
     },
     hub: { type: String, default: "HQ" },
     pdiComments: { type: String, default: "" },
-    pdiChecklist: [
-      {
-        label: { type: String },
-        done: { type: Boolean, default: false },
-      },
-    ],
+    pdiChecklist: {
+      type: [
+        {
+          label: { type: String },
+          done: { type: Boolean, default: false },
+        },
+      ],
+      default: () => DEFAULT_PDI_CHECKLIST,
+    },
     pdiHistory: [
       {
         id: { type: String },
