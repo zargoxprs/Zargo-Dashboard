@@ -182,129 +182,145 @@ const BookingsPage = () => {
           <DialogTrigger asChild>
             <Button><Plus size={16} className="mr-2" />Add Booking</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="flex flex-col max-h-[90vh]">
             <DialogHeader><DialogTitle>Add Booking</DialogTitle></DialogHeader>
-            <div className="space-y-3 pt-2">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Rider Name</Label>
-                  <Input placeholder="e.g. Rahul Sharma" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
-                  {errors.riderName && <p className="text-xs text-destructive">{errors.riderName}</p>}
+            <div className="overflow-y-auto flex-1 px-6">
+              <div className="space-y-6 py-4">
+                {/* Rider Details */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Rider Details</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Rider Name</Label>
+                      <Input placeholder="e.g. Rahul Sharma" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
+                      {errors.riderName && <p className="text-xs text-destructive">{errors.riderName}</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Phone Number</Label>
+                      <Input placeholder="+91 98765 43210" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                      {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Phone Number</Label>
-                  <Input placeholder="+91 98765 43210" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                  {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+
+                {/* Rental Details */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Rental Details</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Rental plan</Label>
+                      <Select value={selectedPlanId} onValueChange={handlePlanChange}>
+                        <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                        <SelectContent>
+                          {rentalPlans.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id}>
+                              {plan.model} / {plan.name} / {plan.kmLabel} / ₹{plan.rental}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Vehicle</Label>
+                      <Select value={form.vehicle} onValueChange={(value) => setForm({ ...form, vehicle: value })}>
+                        <SelectTrigger><SelectValue placeholder={vehicleOptions.length ? "Select available vehicle" : "No available vehicles"} /></SelectTrigger>
+                        <SelectContent>
+                          {vehicleOptions.length > 0 ? vehicleOptions.map((v: any) => (
+                            <SelectItem key={getVehicleId(v)} value={getVehicleId(v)}>{getVehicleLabel(v)}</SelectItem>
+                          )) : (
+                            <SelectItem value="no-vehicle" disabled>No available vehicles</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {errors.vehicle && <p className="text-xs text-destructive">{errors.vehicle}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Start Date</Label>
+                      <Input type="date" value={form.startDate} onChange={(e) => handleStartDateChange(e.target.value)} />
+                      {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>End Date</Label>
+                      <Input type="date" value={form.endDate} readOnly />
+                      {errors.endDate && <p className="text-xs text-destructive">{errors.endDate}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Status</Label>
+                      <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value as BookingStatus })}>
+                        <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="overdue">Overdue</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>KM Used</Label>
+                      <Input type="number" value={form.kmUsed} onChange={(e) => setForm({ ...form, kmUsed: Number(e.target.value) })} />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">KM Limit</p>
+                      <p className="mt-2 font-semibold">{selectedPlan.kmLabel}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Duration</p>
+                      <p className="mt-2 font-semibold">{selectedPlan.name} ({selectedPlan.durationDays} days)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Payment Details</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Rental</p>
+                      <p className="mt-2 font-semibold">₹{selectedPlan.rental}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Deposit</p>
+                      <p className="mt-2 font-semibold">₹{selectedPlan.deposit}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Payment Method</Label>
+                      <Select value={form.paymentMethod} onValueChange={(value) => setForm({ ...form, paymentMethod: value as "Cash" | "Online", referenceNumber: "" })}>
+                        <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Online">Online</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>{form.paymentMethod === "Cash" ? "Bill Number" : "UTR Number"}</Label>
+                      <Input
+                        placeholder={form.paymentMethod === "Cash" ? "Enter Bill Number" : "Enter UTR Number"}
+                        value={form.referenceNumber}
+                        onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
+                      />
+                      {errors.referenceNumber && <p className="text-xs text-destructive">{errors.referenceNumber}</p>}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">{planDescription}</div>
                 </div>
               </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Rental plan</Label>
-                  <Select value={selectedPlanId} onValueChange={handlePlanChange}>
-                    <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
-                    <SelectContent>
-                      {rentalPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.model} / {plan.name} / {plan.kmLabel} / ₹{plan.rental}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Vehicle</Label>
-                  <Select value={form.vehicle} onValueChange={(value) => setForm({ ...form, vehicle: value })}>
-                    <SelectTrigger><SelectValue placeholder={vehicleOptions.length ? "Select available vehicle" : "No available vehicles"} /></SelectTrigger>
-                    <SelectContent>
-                      {vehicleOptions.length > 0 ? vehicleOptions.map((v: any) => (
-                        <SelectItem key={getVehicleId(v)} value={getVehicleId(v)}>{getVehicleLabel(v)}</SelectItem>
-                      )) : (
-                        <SelectItem value="no-vehicle" disabled>No available vehicles</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.vehicle && <p className="text-xs text-destructive">{errors.vehicle}</p>}
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Start Date</Label>
-                  <Input type="date" value={form.startDate} onChange={(e) => handleStartDateChange(e.target.value)} />
-                  {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>End Date</Label>
-                  <Input type="date" value={form.endDate} readOnly />
-                  {errors.endDate && <p className="text-xs text-destructive">{errors.endDate}</p>}
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-border p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Rental</p>
-                  <p className="mt-2 font-semibold">₹{selectedPlan.rental}</p>
-                </div>
-                <div className="rounded-2xl border border-border p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Deposit</p>
-                  <p className="mt-2 font-semibold">₹{selectedPlan.deposit}</p>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-border p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">KM Limit</p>
-                  <p className="mt-2 font-semibold">{selectedPlan.kmLabel}</p>
-                </div>
-                <div className="rounded-2xl border border-border p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">Duration</p>
-                  <p className="mt-2 font-semibold">{selectedPlan.name} ({selectedPlan.durationDays} days)</p>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Status</Label>
-                  <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value as BookingStatus })}>
-                    <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>KM Used</Label>
-                  <Input type="number" value={form.kmUsed} onChange={(e) => setForm({ ...form, kmUsed: Number(e.target.value) })} />
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Payment Method</Label>
-                  <Select value={form.paymentMethod} onValueChange={(value) => setForm({ ...form, paymentMethod: value as "Cash" | "Online", referenceNumber: "" })}>
-                    <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Cash">Cash</SelectItem>
-                      <SelectItem value="Online">Online</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>{form.paymentMethod === "Cash" ? "Bill Number" : "UTR Number"}</Label>
-                  <Input
-                    placeholder={form.paymentMethod === "Cash" ? "Enter Bill Number" : "Enter UTR Number"}
-                    value={form.referenceNumber}
-                    onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-                  />
-                  {errors.referenceNumber && <p className="text-xs text-destructive">{errors.referenceNumber}</p>}
-                </div>
-              </div>
-
-              <div className="text-sm text-muted-foreground">{planDescription}</div>
+            </div>
+            <div className="px-6 pb-4 border-t">
               <Button className="w-full" onClick={handleSubmit}>Create booking</Button>
             </div>
           </DialogContent>

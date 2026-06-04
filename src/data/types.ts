@@ -21,6 +21,8 @@ export interface Booking {
   kmLimit: number;
   status: "active" | "completed" | "overdue" | "pending";
   amount: number;
+  paymentMethod: "Cash" | "Online";
+  referenceNumber: string;
   createdAt: string;
   updatedAt: string;
 }

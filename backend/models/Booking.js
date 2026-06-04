@@ -12,6 +12,8 @@ const BookingSchema = new mongoose.Schema(
     kmLimit: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "completed", "overdue", "pending"], default: "pending" },
     amount: { type: Number, default: 0 },
+    paymentMethod: { type: String, enum: ["Cash", "Online"], default: "Cash" },
+    referenceNumber: { type: String, trim: true, default: "" },
   },
   { timestamps: true }
 );
