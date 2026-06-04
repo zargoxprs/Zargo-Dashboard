@@ -39,9 +39,16 @@ const Dashboard = () => {
   };
 
   const todaysDeliveries = bookings.filter((b) => isToday(b.startDate)).length;
-  const todaysReturns = returnWorkflows.filter((r) => isToday(r.createdAt)).length;
   const renewalFollowups = renewals.filter((r) => ["upcoming", "overdue"].includes(r.status)).length;
   const openServiceJobs = serviceJobs.filter((job) => job.status !== "completed").length;
+  const activeAssignedBookings = bookings.filter((b: any) => {
+    const isActive = (b.status ?? "").toLowerCase() !== "completed";
+    const handler = String((b as any).assignedTo ?? (b as any).assignedStaff ?? (b as any).handledBy ?? "").toLowerCase();
+    const isAssignedToMe = handler && handler === (user?.name ?? "").toLowerCase();
+    const isInMyHub = user?.hub && String((b as any).hub ?? (b.vehicle as any)?.hub ?? "").toLowerCase() === user.hub.toLowerCase();
+    return isActive && (isAssignedToMe || isInMyHub);
+  });
+  const activeAssignedBookingsCount = activeAssignedBookings.length;
   const pendingRefundApprovals = returnWorkflows.filter((r) => r.refundRequested && !r.refundApproved).length;
   const staffTasksOpen = workflowTasks.filter((task) => task.status !== "completed").length;
   const leadsWaiting = leadsQ.data?.length ?? 0;
@@ -94,7 +101,7 @@ const Dashboard = () => {
             <StatCard title="My Revenue" value={`₹${myRevenue.toLocaleString()}`} icon={CreditCard} accent="primary" subtitle="Bookings handled by you" />
             <StatCard title="Available Vehicles" value={stats?.availableVehicles ?? 0} icon={Battery} accent="success" subtitle="Ready for assignment" />
             <StatCard title="Today's Deliveries" value={todaysDeliveries} icon={CalendarDays} accent="success" subtitle="Scheduled starts" />
-            <StatCard title="Today's Returns" value={todaysReturns} icon={ArrowLeftRight} accent="accent" subtitle="Expected returns" />
+            <StatCard title="Active Bookings" value={activeAssignedBookingsCount} icon={ArrowLeftRight} accent="accent" subtitle="Currently assigned rentals" />
             <StatCard title="Renewal Followups" value={renewalFollowups} icon={Repeat} accent="warning" subtitle="Ongoing renewals" />
             <StatCard title="Open Service Jobs" value={openServiceJobs} icon={Wrench} accent="destructive" subtitle="Maintenance queue" />
             <StatCard title="Unread Alerts" value={unreadAlerts} icon={Bell} accent="destructive" subtitle="Critical notices" />
@@ -212,7 +219,7 @@ const Dashboard = () => {
               <div className="overflow-x-auto max-h-[440px] p-2">
                 {bookingsQ.isLoading ? (
                   <TableSkeleton rows={5} cols={5} />
-                ) : activeBookings.length > 0 ? (
+                ) : activeAssignedBookings.length > 0 ? (
                   <table className="w-full text-sm">
                     <thead className="bg-muted/60 text-left text-xs uppercase tracking-[0.2em] text-muted-foreground sticky top-0">
                       <tr className="border-b">
@@ -222,7 +229,7 @@ const Dashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {activeBookings.map((b: any) => {
+                      {activeAssignedBookings.map((b: any) => {
                         const bookingId = b.bookingId ?? b._id ?? b.id ?? "";
                         const customer = b.riderName ?? b.rider_name ?? "";
                         const vehicle = typeof b.vehicle === "string" ? b.vehicle : (b.vehicle?.numberPlate || b.vehicle?.vehicleId || "");

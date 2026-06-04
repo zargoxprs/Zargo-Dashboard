@@ -184,8 +184,10 @@ const VehiclesPage = () => {
           </thead>
           <tbody>
 
-            {filteredVehicles.map((v) => (
-                <tr key={v._id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+            {filteredVehicles.map((v) => {
+              const vehicleKey = v.id ?? v._id;
+              return (
+                <tr key={vehicleKey} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3 font-medium whitespace-nowrap">
                     <span className="inline-flex items-center gap-2">
                       <span className={cn("w-2 h-2 rounded-full", statusDot[v.status])} />
@@ -203,7 +205,7 @@ const VehiclesPage = () => {
                           <button className="p-1.5 rounded-md hover:bg-muted transition-colors"><MoreVertical size={14} /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => deleteVehicle.mutate(v._id)} className="text-destructive gap-2">
+                          <DropdownMenuItem onClick={() => vehicleKey && deleteVehicle.mutate(vehicleKey)} className="text-destructive gap-2">
                             <Trash2 size={14} /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -211,7 +213,8 @@ const VehiclesPage = () => {
                     ) : null}
                   </td>
                 </tr>
-              ))}
+              );
+            })}
           </tbody>
         </table>
         )}

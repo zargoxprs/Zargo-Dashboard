@@ -57,10 +57,10 @@ const BookingsPage = () => {
   const selectedPlan = rentalPlans.find((plan) => plan.id === selectedPlanId) ?? rentalPlans[0];
 
   const availableVehicles = Array.isArray(vehicles)
-    ? vehicles.filter((v: any) => v?.status === "available" || v?.status === "ready_for_booking")
+    ? vehicles.filter((v: any) => v?.status === "ready_for_booking")
     : [];
   const filteredVehicles = availableVehicles.filter((v: any) => v.model === selectedPlan.model);
-  const vehicleOptions = filteredVehicles.length > 0 ? filteredVehicles : availableVehicles;
+  const vehicleOptions = filteredVehicles;
 
   const calculateEndDate = (startDate: string, durationDays: number) => {
     if (!startDate) return "";

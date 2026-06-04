@@ -131,7 +131,7 @@ export interface ApiError {
   status?: number;
 }
 
-export type LeadStage = "new" | "contacted" | "interested" | "qualified" | "converted" | "lost";
+export type LeadStage = "new" | "contacted" | "interested" | "qualified" | "converted" | "lost" | "rejected";
 
 export interface Lead {
   id: string;

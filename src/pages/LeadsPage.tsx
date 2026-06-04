@@ -19,8 +19,10 @@ const leadSources = ["Website", "Walk-in", "Referral", "WhatsApp", "Phone Inquir
 const leadStages: { value: LeadStage; label: string }[] = [
   { value: "new", label: "New" },
   { value: "contacted", label: "Contacted" },
+  { value: "interested", label: "Interested" },
   { value: "qualified", label: "Qualified" },
   { value: "converted", label: "Converted" },
+  { value: "lost", label: "Lost" },
   { value: "rejected", label: "Rejected" },
 ];
 
