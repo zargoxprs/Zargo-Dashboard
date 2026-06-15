@@ -11,6 +11,7 @@ import VehiclesPage from "@/pages/VehiclesPage";
 import BookingsPage from "@/pages/BookingsPage";
 import AlertsPage from "@/pages/AlertsPage";
 import LeadsPage from "@/pages/LeadsPage";
+import CustomersPage from "@/pages/CustomersPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import RenewalsPage from "@/pages/RenewalsPage";
 import RecoveryPage from "@/pages/RecoveryPage";
@@ -56,6 +57,7 @@ const App = () => (
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/vehicles" element={<ProtectedRoute><VehiclesPage /></ProtectedRoute>} />
                 <Route path="/bookings" element={<BookingsPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />

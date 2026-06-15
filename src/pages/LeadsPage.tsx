@@ -13,6 +13,7 @@ import StatCard from "@/components/StatCard";
 import { leads as sampleLeads } from "@/data/workflows";
 import { Lead, LeadStage } from "@/types";
 import { useCreateLead, useLeads, useUpdateLead } from "@/hooks/useLeads";
+import { useCreateCustomer } from "@/hooks/useCustomers";
 import { useEmployees } from "@/hooks/useEmployees";
 
 const leadSources = ["Website", "Walk-in", "Referral", "WhatsApp", "Phone Inquiry"];
@@ -44,6 +45,7 @@ const LeadsPage = () => {
   const employeesQ = useEmployees();
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
+  const createCustomer = useCreateCustomer();
 
   const [query, setQuery] = useState("");
   const [leadForm, setLeadForm] = useState(emptyLeadForm);
@@ -99,15 +101,45 @@ const LeadsPage = () => {
 
   const handleUpdateStatus = () => {
     if (!selectedLead) return;
-    updateLead.mutate(
-      { id: selectedLead.id, patch: { stage: statusValue } },
-      {
-        onSuccess: () => {
-          setStatusDialogOpen(false);
-          setSelectedLead(null);
+    
+    // If changing to "converted", automatically create a customer record
+    if (statusValue === "converted" && selectedLead.stage !== "converted") {
+      createCustomer.mutate(
+        {
+          customerName: selectedLead.customerName,
+          phone: selectedLead.contact,
+          source: selectedLead.source,
+          assignedStaff: selectedLead.assignedTo,
+          status: "Active",
+          leadId: selectedLead.id,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            // After customer is created, update the lead status
+            updateLead.mutate(
+              { id: selectedLead.id, patch: { stage: statusValue } },
+              {
+                onSuccess: () => {
+                  setStatusDialogOpen(false);
+                  setSelectedLead(null);
+                },
+              }
+            );
+          },
+        }
+      );
+    } else {
+      // Regular update without customer creation
+      updateLead.mutate(
+        { id: selectedLead.id, patch: { stage: statusValue } },
+        {
+          onSuccess: () => {
+            setStatusDialogOpen(false);
+            setSelectedLead(null);
+          },
+        }
+      );
+    }
   };
 
   const handleCall = (contact: string) => {

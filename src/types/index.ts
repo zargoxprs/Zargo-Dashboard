@@ -145,6 +145,18 @@ export interface Lead {
   createdAt: string;
 }
 
+export interface Customer {
+  id: string;
+  customerId: string;
+  customerName: string;
+  phone: string;
+  source: string;
+  assignedStaff: string;
+  status: "Active" | "Inactive";
+  createdAt: string;
+  leadId?: string;
+}
+
 export interface OnboardingWorkflow {
   id: string;
   vehicleId: string;

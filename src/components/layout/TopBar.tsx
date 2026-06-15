@@ -24,6 +24,7 @@ const TopBar = () => {
   const [activeTab, setActiveTab] = useState<"unread" | "critical" | "warning" | "info">("unread");
   const [query, setQuery] = useState("");
   const [openSearch, setOpenSearch] = useState(false);
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
   const { range, setRange } = useDateFilter();
   const location = useLocation();
   const [customStart, setCustomStart] = useState(range.start ? range.start.split("T")[0] : "");

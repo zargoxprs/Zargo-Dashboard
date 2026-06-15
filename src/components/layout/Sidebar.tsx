@@ -49,6 +49,7 @@ const sidebarGroups: SidebarGroup[] = [
         roles: ["admin", "staff"],
         subItems: [
           { to: "/vehicles", label: "Vehicles", icon: Bike, roles: ["admin", "staff"] },
+          { to: "/customers", label: "Customers", icon: Users, roles: ["admin", "staff"] },
           { to: "/onboarding", label: "PDI Check", icon: FileCheck, roles: ["admin", "staff"] },
           { to: "/bookings", label: "Bookings", icon: CalendarDays, roles: ["admin", "staff"] },
         ],

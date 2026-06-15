@@ -39,6 +39,7 @@ const Dashboard = () => {
   };
 
   const todaysDeliveries = bookings.filter((b) => isToday(b.startDate)).length;
+  const todaysReturns = bookings.filter((b) => isToday(b.endDate)).length;
   const renewalFollowups = renewals.filter((r) => ["upcoming", "overdue"].includes(r.status)).length;
   const openServiceJobs = serviceJobs.filter((job) => job.status !== "completed").length;
   const activeAssignedBookings = bookings.filter((b: any) => {
