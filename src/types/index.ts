@@ -16,7 +16,7 @@ export interface AuthResponse {
   user: User;
 }
 
-export type VehicleStatus = "available" | "pdi_pending" | "booked" | "service" | "ready_for_booking";
+export type VehicleStatus = "available" | "pdi_pending" | "service";
 
 export interface UploadFile {
   name: string;
@@ -47,8 +47,6 @@ export interface Vehicle {
   pdiComments?: string;
   pdiChecklist?: PdiChecklistItem[];
   pdiHistory?: PdiAuditRecord[];
-  pdiKycLicense?: UploadFile;
-  pdiKycAadhaar?: UploadFile;
   pdiOdometerPhoto?: UploadFile;
   pdiVehiclePhotos?: UploadFile[];
   completedAt?: string;

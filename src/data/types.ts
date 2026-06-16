@@ -3,7 +3,7 @@ export interface Vehicle {
   vehicleId: string;
   model: string;
   numberPlate: string;
-  status: "available" | "pdi_pending" | "booked" | "service";
+  status: "available" | "pdi_pending" | "service";
   hub: string;
   createdAt: string;
   updatedAt: string;

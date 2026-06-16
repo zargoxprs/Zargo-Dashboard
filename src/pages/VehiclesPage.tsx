@@ -38,7 +38,6 @@ const VehiclesPage = () => {
   const statusDot: Record<string, string> = {
     available: "bg-success",
     pdi_pending: "bg-warning",
-    booked: "bg-primary",
     service: "bg-destructive",
   };
 
@@ -91,7 +90,6 @@ const VehiclesPage = () => {
     { key: "total", title: "Total Vehicles", value: vehicles.length, icon: Truck, accent: "primary", subtitle: "Current fleet size" },
     { key: "available", title: "Available", value: vehicles.filter((v) => v.status === "available").length, icon: FileCheck, accent: "success", subtitle: "Ready for dispatch" },
     { key: "pdi_pending", title: "PDI Pending", value: vehicles.filter((v) => v.status === "pdi_pending").length, icon: AlertTriangle, accent: "warning", subtitle: "Pending PDI checks" },
-    { key: "booked", title: "Booked", value: vehicles.filter((v) => v.status === "booked").length, icon: CalendarDays, accent: "accent", subtitle: "Reserved for customers" },
     { key: "service", title: "Service", value: vehicles.filter((v) => v.status === "service").length, icon: Wrench, accent: "warning", subtitle: "Under repair" },
   ];
 
@@ -154,7 +152,6 @@ const VehiclesPage = () => {
                   <SelectContent>
                     <SelectItem value="pdi_pending">PDI Pending</SelectItem>
                     <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="booked">Booked</SelectItem>
                     <SelectItem value="service">Service</SelectItem>
                   </SelectContent>
                 </Select>

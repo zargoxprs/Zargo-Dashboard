@@ -30,8 +30,6 @@ type PdiVehicle = Vehicle & {
   comments: string;
   checklist: { label: string; done: boolean }[];
   history: PdiAuditRecord[];
-  kycLicense?: UploadFile;
-  kycAadhaar?: UploadFile;
   odometerPhoto?: UploadFile;
   vehiclePhotos: UploadFile[];
 };
@@ -66,9 +64,7 @@ const buildPersistableUpload = async (upload?: UploadFile): Promise<UploadFile |
 };
 
 const buildPdiPatch = async (vehicle: PdiVehicle): Promise<Partial<Vehicle>> => {
-  const [kycLicense, kycAadhaar, odometerPhoto, vehiclePhotos] = await Promise.all([
-    buildPersistableUpload(vehicle.kycLicense),
-    buildPersistableUpload(vehicle.kycAadhaar),
+  const [odometerPhoto, vehiclePhotos] = await Promise.all([
     buildPersistableUpload(vehicle.odometerPhoto),
     Promise.all(vehicle.vehiclePhotos.map(buildPersistableUpload)),
   ]);
@@ -77,8 +73,6 @@ const buildPdiPatch = async (vehicle: PdiVehicle): Promise<Partial<Vehicle>> => 
     pdiComments: vehicle.comments,
     pdiChecklist: vehicle.checklist,
     pdiHistory: vehicle.history,
-    pdiKycLicense: kycLicense,
-    pdiKycAadhaar: kycAadhaar,
     pdiOdometerPhoto: odometerPhoto,
     pdiVehiclePhotos: vehiclePhotos.filter(Boolean) as UploadFile[],
     completedAt: vehicle.completedAt,
@@ -102,11 +96,11 @@ const OnboardingPage = () => {
   const [isPreviewZoomed, setIsPreviewZoomed] = useState(false);
 
   const activePdiVehicles = useMemo(
-    () => vehicles.filter((vehicle) => ["pdi_pending", "in-progress", "service"].includes(vehicle.status)),
+    () => vehicles.filter((vehicle) => vehicle.status === "pdi_pending"),
     [vehicles]
   );
   const readyForBookingVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.status === "ready_for_booking"),
+    () => vehicles.filter((vehicle) => vehicle.status === "available"),
     [vehicles]
   );
 
@@ -127,20 +121,18 @@ const OnboardingPage = () => {
       {
         id: `${getVehicleKey(vehicle)}-history-1`,
         action: "Vehicle added",
-        details: vehicle.status === "pdi_pending" ? "PDI Pending" : vehicle.status === "ready_for_booking" ? "PDI Completed" : "Vehicle record",
+        details: vehicle.status === "pdi_pending" ? "PDI Pending" : "Vehicle record",
         timestamp: vehicle.completedAt ?? getVehicleCreatedAt(vehicle),
       },
     ],
-    kycLicense: existing?.kycLicense ?? vehicle.pdiKycLicense,
-    kycAadhaar: existing?.kycAadhaar ?? vehicle.pdiKycAadhaar,
     odometerPhoto: existing?.odometerPhoto ?? vehicle.pdiOdometerPhoto,
     vehiclePhotos: existing?.vehiclePhotos ?? vehicle.pdiVehiclePhotos ?? [],
   });
 
   const getProgress = (vehicle: PdiVehicle) => {
     const doneCount = vehicle.checklist.filter((step) => step.done).length;
-    const mediaCount = Number(Boolean(vehicle.kycLicense)) + Number(Boolean(vehicle.kycAadhaar)) + Number(Boolean(vehicle.odometerPhoto)) + Number(Boolean(vehicle.vehiclePhotos.length > 0));
-    const total = DEFAULT_CHECKLIST.length + 4;
+    const mediaCount = Number(Boolean(vehicle.odometerPhoto)) + Number(Boolean(vehicle.vehiclePhotos.length > 0));
+    const total = DEFAULT_CHECKLIST.length + 2;
     return Math.round(((doneCount + mediaCount) / total) * 100);
   };
 
@@ -180,7 +172,7 @@ const OnboardingPage = () => {
     file,
   });
 
-  const handleFileUpload = (field: "kycLicense" | "kycAadhaar" | "odometerPhoto" | "vehiclePhotos", fileList: FileList | null) => {
+  const handleFileUpload = (field: "odometerPhoto" | "vehiclePhotos", fileList: FileList | null) => {
     if (!selectedVehicle || !fileList) return;
     if (field === "vehiclePhotos") {
       const uploads = Array.from(fileList).map(createUploadItem);
@@ -246,7 +238,7 @@ const OnboardingPage = () => {
     if (!selectedVehicle) return;
     const vehicleKey = getVehicleKey(selectedVehicle);
     const completedBy = user?.name || user?.username || "System";
-    const updated = addHistory({ ...selectedVehicle, status: "ready_for_booking", completedAt: new Date().toISOString(), completedBy }, "PDI complete", "Vehicle ready for booking");
+    const updated = addHistory({ ...selectedVehicle, status: "available", completedAt: new Date().toISOString(), completedBy }, "PDI complete", "Vehicle available for bookings");
     saveVehicleState(updated);
     const patch = await buildPdiPatch(updated);
     updateVehicleMutation.mutate({ id: vehicleKey, patch });
@@ -298,7 +290,7 @@ const OnboardingPage = () => {
     });
   };
 
-  const handleRemoveUpload = (field: "kycLicense" | "kycAadhaar" | "odometerPhoto" | "vehiclePhotos", index?: number) => {
+  const handleRemoveUpload = (field: "odometerPhoto" | "vehiclePhotos", index?: number) => {
     if (!selectedVehicle) return;
     if (field === "vehiclePhotos") {
       const updatedPhotos = selectedVehicle.vehiclePhotos.filter((_, idx) => idx !== index);
@@ -310,8 +302,6 @@ const OnboardingPage = () => {
 
   const canComplete = selectedVehicle
     ? selectedVehicle.checklist.every((step) => step.done) &&
-      selectedVehicle.kycLicense &&
-      selectedVehicle.kycAadhaar &&
       selectedVehicle.odometerPhoto &&
       selectedVehicle.vehiclePhotos.length > 0
     : false;
@@ -431,7 +421,7 @@ const OnboardingPage = () => {
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Progress</span>
-                    <span>{getProgress(selectedVehicle)}% · {selectedVehicle.checklist.filter((step) => step.done).length} of {selectedVehicle.checklist.length + 4} items done</span>
+                    <span>{getProgress(selectedVehicle)}% · {selectedVehicle.checklist.filter((step) => step.done).length} of {selectedVehicle.checklist.length + 2} checks passed</span>
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
                     <div className="h-full rounded-full bg-primary" style={{ width: `${getProgress(selectedVehicle)}%` }} />
@@ -457,6 +447,9 @@ const OnboardingPage = () => {
                             <div key={step.label} className="w-full flex items-center gap-3 rounded-2xl border border-border px-3 py-3 text-sm bg-background">
                               <Check size={16} className={step.done ? "text-success" : "text-muted-foreground"} />
                               <span className={step.done ? "text-success font-semibold" : "text-muted-foreground"}>{step.label}</span>
+                              <span className={`ml-auto text-xs font-semibold ${step.done ? "text-success" : "text-destructive"}`}>
+                                {step.done ? "PASS" : "FAIL"}
+                              </span>
                             </div>
                           ))
                         ) : (
@@ -468,8 +461,8 @@ const OnboardingPage = () => {
                               className="w-full flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
                             >
                               <span className="flex-1">{step.label}</span>
-                              <span className={`ml-3 flex-shrink-0 font-semibold ${step.done ? "text-success" : "text-muted-foreground"}`}>
-                                {step.done ? "Done" : "Pending"}
+                              <span className={`ml-3 flex-shrink-0 font-semibold ${step.done ? "text-success" : "text-destructive"}`}>
+                                {step.done ? "PASS" : "FAIL"}
                               </span>
                             </button>
                           ))
@@ -489,44 +482,10 @@ const OnboardingPage = () => {
 
                   <div className="space-y-4">
                     <div className="rounded-3xl border border-border p-4 min-h-[420px]">
-                      <p className="text-sm font-semibold mb-4">Documents</p>
+                      <p className="text-sm font-semibold mb-4">Vehicle Evidence</p>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <p className="text-sm font-medium">Driving Licence</p>
-                          {!isReadOnly && (
-                            <Input id="kyc-license" type="file" accept="image/*" onChange={(e) => handleFileUpload("kycLicense", e.target.files)} />
-                          )}
-                          {selectedVehicle.kycLicense ? (
-                            <div className="mt-2 rounded-2xl border border-border bg-background p-3 text-sm text-muted-foreground">
-                              <button type="button" onClick={() => openImageViewer([selectedVehicle.kycLicense!], 0)} className="group block overflow-hidden rounded-2xl">
-                                <img src={selectedVehicle.kycLicense.url} alt={selectedVehicle.kycLicense.name} className="h-20 w-full object-cover rounded-2xl" />
-                              </button>
-                              <p className="mt-2 truncate">{selectedVehicle.kycLicense.name}</p>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">No file uploaded</p>
-                          )}
-                        </div>
 
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium">Aadhaar</p>
-                          {!isReadOnly && (
-                            <Input id="kyc-aadhaar" type="file" accept="image/*" onChange={(e) => handleFileUpload("kycAadhaar", e.target.files)} />
-                          )}
-                          {selectedVehicle.kycAadhaar ? (
-                            <div className="mt-2 rounded-2xl border border-border bg-background p-3 text-sm text-muted-foreground">
-                              <button type="button" onClick={() => openImageViewer([selectedVehicle.kycAadhaar!], 0)} className="group block overflow-hidden rounded-2xl">
-                                <img src={selectedVehicle.kycAadhaar.url} alt={selectedVehicle.kycAadhaar.name} className="h-20 w-full object-cover rounded-2xl" />
-                              </button>
-                              <p className="mt-2 truncate">{selectedVehicle.kycAadhaar.name}</p>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">No file uploaded</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium">Odometer Photo</p>
                           {!isReadOnly && (
                             <Input id="odometer-upload" type="file" accept="image/*" onChange={(e) => handleFileUpload("odometerPhoto", e.target.files)} />
                           )}

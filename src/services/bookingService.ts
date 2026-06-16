@@ -14,12 +14,6 @@ export const bookingService = {
     return mockOr(
       () => {
         useStore.getState().addBooking(payload);
-        const vehicleId = typeof payload.vehicle === "string" ? payload.vehicle : payload.vehicle._id || payload.vehicle.id;
-        if (vehicleId && payload.status === "active") {
-          useStore.getState().updateVehicle(vehicleId, { status: "booked" });
-        } else if (vehicleId && payload.status === "completed") {
-          useStore.getState().updateVehicle(vehicleId, { status: "available" });
-        }
         const list = useStore.getState().bookings;
         return list[list.length - 1];
       },
@@ -30,7 +24,6 @@ export const bookingService = {
     return mockOr(
       () => {
         useStore.getState().updateBookingStatus(id, status);
-
         return useStore.getState().bookings.find((b) => b._id === id)!;
       },
       async () => (await apiClient.patch<Booking>(`/bookings/${id}`, { status })).data
