@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Search, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import StatusBadge from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
@@ -10,29 +10,7 @@ import { TableSkeleton } from "@/components/states/LoadingSkeleton";
 import StatCard from "@/components/StatCard";
 import { useLeads } from "@/hooks/useLeads";
 import { Lead } from "@/types";
-
-const CUSTOMER_DOCS_KEY = "zargo_customer_docs";
-
-const getCustomerDocs = (leadId: string): { aadhaar?: any; drivingLicense?: any } => {
-  try {
-    const stored = localStorage.getItem(CUSTOMER_DOCS_KEY);
-    const allDocs = stored ? JSON.parse(stored) : {};
-    return allDocs[leadId] ?? {};
-  } catch {
-    return {};
-  }
-};
-
-const saveCustomerDocs = (leadId: string, docs: any) => {
-  try {
-    const stored = localStorage.getItem(CUSTOMER_DOCS_KEY);
-    const allDocs = stored ? JSON.parse(stored) : {};
-    allDocs[leadId] = { ...allDocs[leadId], ...docs };
-    localStorage.setItem(CUSTOMER_DOCS_KEY, JSON.stringify(allDocs));
-  } catch {
-    // ignore
-  }
-};
+import { getCustomerDocs, saveCustomerDocs, hasCustomerDocs } from "@/lib/lifecycle";
 
 const emptyCustomerForm = {
   customerName: "",
@@ -48,6 +26,7 @@ const CustomersPage = () => {
   const [customerForm, setCustomerForm] = useState(emptyCustomerForm);
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadAadhaarFile, setUploadAadhaarFile] = useState<File | null>(null);
   const [uploadDlFile, setUploadDlFile] = useState<File | null>(null);
@@ -66,7 +45,7 @@ const CustomersPage = () => {
     );
   }, [convertedLeads, query]);
 
-  const openDialog = (lead?: Lead) => {
+  const openDialog = (lead?: Lead, viewOnly = false) => {
     if (lead) {
       setCustomerForm({ customerName: lead.customerName, phone: lead.contact });
       setEditingLeadId(lead.id);
@@ -74,6 +53,7 @@ const CustomersPage = () => {
       setCustomerForm(emptyCustomerForm);
       setEditingLeadId(null);
     }
+    setIsViewMode(viewOnly);
     setErrors({});
     setUploadAadhaarFile(null);
     setUploadDlFile(null);
@@ -105,10 +85,7 @@ const CustomersPage = () => {
     if (sanitized) window.open(`tel:${sanitized}`, "_self");
   };
 
-  const readyCount = convertedLeads.filter((lead) => {
-    const docs = getCustomerDocs(lead.id);
-    return !!(docs?.aadhaar && docs?.drivingLicense);
-  }).length;
+  const readyCount = convertedLeads.filter((lead) => hasCustomerDocs(getCustomerDocs(lead.id))).length;
 
   const formatDate = (date: string) => {
     try {
@@ -180,9 +157,9 @@ const CustomersPage = () => {
                       <tbody>
                         {Array.isArray(filtered) && filtered.map((lead) => {
                           const docs = getCustomerDocs(lead.id);
-                          const hasAadhaar = !!docs?.aadhaar;
-                          const hasDl = !!docs?.drivingLicense;
-                          const overall = hasAadhaar && hasDl ? "ready for booking" : "pending";
+                          const hasAadhaar = Boolean(docs?.aadhaar?.url);
+                          const hasDl = Boolean(docs?.drivingLicense?.url);
+                          const overall = hasCustomerDocs(docs) ? "ready for booking" : "pending";
                           return (
                             <tr key={lead.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                               <td className="px-5 py-3 font-medium">{lead.customerName}</td>
@@ -205,7 +182,7 @@ const CustomersPage = () => {
                                 <StatusBadge status={overall} />
                               </td>
                               <td className="px-5 py-3 flex gap-2">
-                                <Button onClick={() => openDialog(lead)} className="h-8">
+                                <Button onClick={() => openDialog(lead, hasAadhaar && hasDl)} className="h-8">
                                   {hasAadhaar && hasDl ? "View" : "Upload Docs"}
                                 </Button>
                               </td>
@@ -220,34 +197,100 @@ const CustomersPage = () => {
         </div>
       )}
           {/* Upload / View modal */}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            if (!open) {
+              setIsViewMode(false);
+              setEditingLeadId(null);
+              setUploadAadhaarFile(null);
+              setUploadDlFile(null);
+            }
+            setDialogOpen(open);
+          }}>
+            <DialogContent onOpenAutoFocus={(event) => event.preventDefault()}>
               <DialogHeader>
-                <DialogTitle>Upload Documents</DialogTitle>
+                <DialogTitle>
+                  {isViewMode ? `Customer Documents — ${customerForm.customerName}` : "Upload Documents"}
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label>Customer Name</Label>
-                  <Input readOnly value={customerForm.customerName} />
-                </div>
 
-                <div className="space-y-1.5">
-                  <Label>Phone Number</Label>
-                  <Input readOnly value={customerForm.phone} />
-                </div>
+              {isViewMode ? (
+                <div className="space-y-6">
+                  <div className="rounded-3xl border border-border bg-muted/50 p-4">
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Customer Name</p>
+                        <p className="mt-2 font-medium">{customerForm.customerName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Phone Number</p>
+                        <p className="mt-2 font-medium">{customerForm.phone}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Overall Status</p>
+                        <p className="mt-2 font-medium">
+                          <StatusBadge status={hasCustomerDocs(getCustomerDocs(editingLeadId ?? "")) ? "ready for booking" : "pending"} />
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label>Aadhaar</Label>
-                  <input type="file" accept="image/*,application/pdf" onChange={(e) => setUploadAadhaarFile(e.target.files?.[0] ?? null)} />
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold">Documents</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {[
+                        { label: "Aadhaar", file: getCustomerDocs(editingLeadId ?? "")?.aadhaar },
+                        { label: "Driving Licence", file: getCustomerDocs(editingLeadId ?? "")?.drivingLicense },
+                      ].map(({ label, file }) => (
+                        <div key={label} className="rounded-3xl border border-border bg-muted/50 p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold">{label}</p>
+                          </div>
+                          {!file ? (
+                            <p className="text-sm text-muted-foreground">No document uploaded.</p>
+                          ) : file.url?.endsWith(".pdf") ? (
+                            <div className="space-y-2 text-sm">
+                              <p className="font-medium truncate">{file.name}</p>
+                              <a href={file.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open PDF</a>
+                            </div>
+                          ) : (
+                            <div className="rounded-3xl overflow-hidden border border-border bg-background">
+                              <img src={file.url} alt={file.name} className="w-full max-h-60 object-contain" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Customer Name</Label>
+                    <Input readOnly value={customerForm.customerName} />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label>Driving Licence</Label>
-                  <input type="file" accept="image/*,application/pdf" onChange={(e) => setUploadDlFile(e.target.files?.[0] ?? null)} />
+                  <div className="space-y-1.5">
+                    <Label>Phone Number</Label>
+                    <Input readOnly value={customerForm.phone} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Aadhaar</Label>
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => setUploadAadhaarFile(e.target.files?.[0] ?? null)} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Driving Licence</Label>
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => setUploadDlFile(e.target.files?.[0] ?? null)} />
+                  </div>
                 </div>
+              )}
 
-                <Button onClick={handleSave} className="w-full">Save</Button>
-              </div>
+              <DialogFooter className="pt-4">
+                <Button className="w-full" onClick={isViewMode ? () => setDialogOpen(false) : handleSave}>
+                  {isViewMode ? "Close" : "Save"}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
     </div>

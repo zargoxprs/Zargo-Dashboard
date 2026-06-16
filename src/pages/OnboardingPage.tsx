@@ -1,8 +1,8 @@
 ﻿import { useMemo, useState } from "react";
-import { Bike, AlertTriangle, Battery, Wrench, Plus, Check, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Bike, AlertTriangle, Battery, Wrench, Plus, Check, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X as XIcon } from "lucide-react";
 import { useVehicles, useUpdateVehicle, useAddVehicle } from "@/hooks/useVehicles";
 import { useAuth } from "@/context/AuthContext";
-import { StatusBadge } from "@/components/StatusBadge";
+import StatusBadge from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Vehicle } from "@/types";
+import { getPendingPdiVehicles, getReadyForBookingVehicles, getAvailableVehicles, getVehicleKey } from "@/lib/lifecycle";
 
 type PdiAuditRecord = {
   id: string;
@@ -26,25 +27,30 @@ type UploadFile = {
   file?: File;
 };
 
+type PdiChecklistItem = {
+  label: string;
+  done: boolean;
+  evaluated?: boolean;
+};
+
 type PdiVehicle = Vehicle & {
   comments: string;
-  checklist: { label: string; done: boolean }[];
+  checklist: PdiChecklistItem[];
   history: PdiAuditRecord[];
   odometerPhoto?: UploadFile;
   vehiclePhotos: UploadFile[];
 };
 
 const DEFAULT_CHECKLIST = [
-  { label: "Battery Health", done: false },
-  { label: "Tyre Pressure", done: false },
-  { label: "Charger", done: false },
-  { label: "Brakes", done: false },
-  { label: "Lights", done: false },
-  { label: "Indicators", done: false },
-  { label: "Horn", done: false },
+  { label: "Battery Health", done: false, evaluated: false },
+  { label: "Tyre Pressure", done: false, evaluated: false },
+  { label: "Charger", done: false, evaluated: false },
+  { label: "Brakes", done: false, evaluated: false },
+  { label: "Lights", done: false, evaluated: false },
+  { label: "Indicators", done: false, evaluated: false },
+  { label: "Horn", done: false, evaluated: false },
 ];
 
-const getVehicleKey = (vehicle: Vehicle) => vehicle.id ?? vehicle._id ?? vehicle.vehicleId;
 const getVehicleCreatedAt = (vehicle: Vehicle) => vehicle.createdAt ?? (vehicle as any).created_at ?? new Date().toISOString().split("T")[0];
 
 const fileToDataUrl = (file: File): Promise<string> =>
@@ -95,14 +101,8 @@ const OnboardingPage = () => {
   const [previewImageList, setPreviewImageList] = useState<UploadFile[]>([]);
   const [isPreviewZoomed, setIsPreviewZoomed] = useState(false);
 
-  const activePdiVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.status === "pdi_pending"),
-    [vehicles]
-  );
-  const readyForBookingVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.status === "available"),
-    [vehicles]
-  );
+  const activePdiVehicles = useMemo(() => getPendingPdiVehicles(vehicles), [vehicles]);
+  const readyForBookingVehicles = useMemo(() => getReadyForBookingVehicles(vehicles), [vehicles]);
 
   const pendingCount = activePdiVehicles.length;
   const availableCount = readyForBookingVehicles.length;
@@ -158,10 +158,10 @@ const OnboardingPage = () => {
     saveVehicleState(updated);
   };
 
-  const handleToggleChecklist = (index: number) => {
+  const handleToggleChecklist = (index: number, pass: boolean) => {
     if (!selectedVehicle) return;
     const checklist = selectedVehicle.checklist.map((item, idx) =>
-      idx === index ? { ...item, done: !item.done } : item
+      idx === index ? { ...item, done: pass, evaluated: true } : item
     );
     updateSelectedVehicle({ checklist });
   };
@@ -238,7 +238,7 @@ const OnboardingPage = () => {
     if (!selectedVehicle) return;
     const vehicleKey = getVehicleKey(selectedVehicle);
     const completedBy = user?.name || user?.username || "System";
-    const updated = addHistory({ ...selectedVehicle, status: "available", completedAt: new Date().toISOString(), completedBy }, "PDI complete", "Vehicle available for bookings");
+    const updated = addHistory({ ...selectedVehicle, status: "ready_for_booking", completedAt: new Date().toISOString(), completedBy }, "PDI complete", "Vehicle ready for booking");
     saveVehicleState(updated);
     const patch = await buildPdiPatch(updated);
     updateVehicleMutation.mutate({ id: vehicleKey, patch });
@@ -260,8 +260,8 @@ const OnboardingPage = () => {
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
   
   const eligibleVehicles = useMemo(
-    () => vehicles.filter((v) => ["available", "pdi_pending"].includes(v.status) && !activePdiVehicles.some((pv) => getVehicleKey(pv) === getVehicleKey(v))),
-    [vehicles, activePdiVehicles]
+    () => getAvailableVehicles(vehicles),
+    [vehicles]
   );
   
   const filteredVehicles = useMemo(
@@ -301,7 +301,7 @@ const OnboardingPage = () => {
   };
 
   const canComplete = selectedVehicle
-    ? selectedVehicle.checklist.every((step) => step.done) &&
+    ? selectedVehicle.checklist.every((step) => step.evaluated === true) &&
       selectedVehicle.odometerPhoto &&
       selectedVehicle.vehiclePhotos.length > 0
     : false;
@@ -320,7 +320,7 @@ const OnboardingPage = () => {
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={() => setOpenAddDialog(true)}>
-          <Plus size={14} className="mr-2" /> Add Vehicle
+          <Plus size={14} className="mr-2" /> Available Vehicles ({eligibleVehicles.length})
         </Button>
       </div>
 
@@ -444,27 +444,48 @@ const OnboardingPage = () => {
                       <div className="space-y-2">
                         {isReadOnly ? (
                           selectedVehicle.checklist.map((step) => (
-                            <div key={step.label} className="w-full flex items-center gap-3 rounded-2xl border border-border px-3 py-3 text-sm bg-background">
-                              <Check size={16} className={step.done ? "text-success" : "text-muted-foreground"} />
-                              <span className={step.done ? "text-success font-semibold" : "text-muted-foreground"}>{step.label}</span>
-                              <span className={`ml-auto text-xs font-semibold ${step.done ? "text-success" : "text-destructive"}`}>
-                                {step.done ? "PASS" : "FAIL"}
-                              </span>
+                            <div key={step.label} className="w-full flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-sm bg-background">
+                              <span className="flex-1">{step.label}</span>
+                              <div className="flex gap-2">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${step.done ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+                                  {step.done ? <Check size={14} className="mr-1" /> : <XIcon size={14} className="mr-1" />}
+                                  {step.done ? "PASS" : "FAIL"}
+                                </span>
+                              </div>
                             </div>
                           ))
                         ) : (
                           selectedVehicle.checklist.map((step, index) => (
-                            <button
+                            <div
                               key={step.label}
-                              type="button"
-                              onClick={() => handleToggleChecklist(index)}
-                              className="w-full flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
+                              className="w-full flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-left text-sm bg-background"
                             >
                               <span className="flex-1">{step.label}</span>
-                              <span className={`ml-3 flex-shrink-0 font-semibold ${step.done ? "text-success" : "text-destructive"}`}>
-                                {step.done ? "PASS" : "FAIL"}
-                              </span>
-                            </button>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleChecklist(index, true)}
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                    step.evaluated && step.done
+                                      ? "bg-success/15 text-success border border-success/30"
+                                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  }`}
+                                >
+                                  <Check size={14} className="mr-1" /> PASS
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleChecklist(index, false)}
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                    step.evaluated && !step.done
+                                      ? "bg-destructive/15 text-destructive border border-destructive/30"
+                                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  }`}
+                                >
+                                  <XIcon size={14} className="mr-1" /> FAIL
+                                </button>
+                              </div>
+                            </div>
                           ))
                         )}
                       </div>
@@ -535,7 +556,7 @@ const OnboardingPage = () => {
                 <Button variant="outline" onClick={handleSendToService}>
                   Send To Service
                 </Button>
-                <Button disabled={!canComplete || updateVehicleMutation.isLoading} onClick={handleMarkComplete}>
+                <Button disabled={!canComplete || updateVehicleMutation.isPending} onClick={handleMarkComplete}>
                   Mark PDI Complete
                 </Button>
               </DialogFooter>
@@ -595,7 +616,7 @@ const OnboardingPage = () => {
 
           <DialogFooter className="pt-4">
             <Button variant="secondary" onClick={() => setOpenAddDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddVehicle} disabled={!addForm.vehicleId || updateVehicleMutation.isLoading} className="ml-2">Add</Button>
+            <Button onClick={handleAddVehicle} disabled={!addForm.vehicleId || updateVehicleMutation.isPending} className="ml-2">Add</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -626,7 +647,7 @@ const OnboardingPage = () => {
                   onClick={closeImageViewer}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
                 >
-                  <X size={18} />
+                  <XIcon size={18} />
                 </button>
               </div>
             </div>

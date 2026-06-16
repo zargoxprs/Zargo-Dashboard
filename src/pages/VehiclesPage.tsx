@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Vehicle } from "@/types";
+import { getAvailableVehicles, getPendingPdiVehicles, getReadyForBookingVehicles } from "@/lib/lifecycle";
 import { TableSkeleton } from "@/components/states/LoadingSkeleton";
 import { EmptyState } from "@/components/states/EmptyState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -37,6 +38,7 @@ const VehiclesPage = () => {
 
   const statusDot: Record<string, string> = {
     available: "bg-success",
+    ready_for_booking: "bg-primary",
     pdi_pending: "bg-warning",
     service: "bg-destructive",
   };
@@ -88,8 +90,9 @@ const VehiclesPage = () => {
 
   const statsCards = [
     { key: "total", title: "Total Vehicles", value: vehicles.length, icon: Truck, accent: "primary", subtitle: "Current fleet size" },
-    { key: "available", title: "Available", value: vehicles.filter((v) => v.status === "available").length, icon: FileCheck, accent: "success", subtitle: "Ready for dispatch" },
-    { key: "pdi_pending", title: "PDI Pending", value: vehicles.filter((v) => v.status === "pdi_pending").length, icon: AlertTriangle, accent: "warning", subtitle: "Pending PDI checks" },
+    { key: "ready_for_booking", title: "Ready For Booking", value: getReadyForBookingVehicles(vehicles).length, icon: FileCheck, accent: "primary", subtitle: "PDI completed" },
+    { key: "pdi_pending", title: "PDI Pending", value: getPendingPdiVehicles(vehicles).length, icon: AlertTriangle, accent: "warning", subtitle: "Pending PDI checks" },
+    { key: "available", title: "Available", value: getAvailableVehicles(vehicles).length, icon: FileCheck, accent: "success", subtitle: "Ready for booking" },
     { key: "service", title: "Service", value: vehicles.filter((v) => v.status === "service").length, icon: Wrench, accent: "warning", subtitle: "Under repair" },
   ];
 
@@ -144,17 +147,6 @@ const VehiclesPage = () => {
                   </SelectContent>
                 </Select>
                 {errors.hub && <p className="text-xs text-destructive">{errors.hub}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Vehicle["status"] })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdi_pending">PDI Pending</SelectItem>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="service">Service</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <Button className="w-full" onClick={handleSubmit}>Save</Button>
             </div>

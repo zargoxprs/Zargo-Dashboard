@@ -1,5 +1,5 @@
 ﻿import { useState, useMemo } from "react";
-import { useBookings, useAddBooking } from "@/hooks/useBookings";
+import { useBookings, useAddBooking, useUpdateBookingStatus } from "@/hooks/useBookings";
 import { useLeads } from "@/hooks/useLeads";
 import { useVehicles } from "@/hooks/useVehicles";
 import StatusBadge from "@/components/StatusBadge";
@@ -15,20 +15,15 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { useDateFilter } from "@/context/DateFilterContext";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-
-const CUSTOMER_DOCS_KEY = "zargo_customer_docs";
-
-const getCustomerDocs = (leadId: string): { aadhaar?: any; drivingLicense?: any } => {
-  try {
-    const stored = localStorage.getItem(CUSTOMER_DOCS_KEY);
-    const allDocs = stored ? JSON.parse(stored) : {};
-    return allDocs[leadId] ?? {};
-  } catch {
-    return {};
-  }
-};
-
-type BookingStatus = "active" | "completed" | "overdue" | "pending";
+import { Booking, BookingStatus } from "@/types";
+import {
+  getAvailableVehicles,
+  getAvailableCustomers,
+  getBookedVehicleIds,
+  getCustomersWithActiveBookings,
+  getAllCustomerDocs,
+  getVehicleKey,
+} from "@/lib/lifecycle";
 
 interface BookingForm {
   riderName: string;
@@ -54,18 +49,19 @@ const rentalPlans = [
 
 const BookingsPage = () => {
   const bookingsQ = useBookings();
-  const bookings = Array.isArray(bookingsQ.data) ? bookingsQ.data : [];
+  const bookings = Array.isArray(bookingsQ.data) ? (bookingsQ.data as Booking[]) : [];
   const { data: vehicles = [] } = useVehicles();
   const addBooking = useAddBooking();
+  const updateBookingStatus = useUpdateBookingStatus();
   const leadsQ = useLeads();
   const leads = Array.isArray(leadsQ.data) ? leadsQ.data : [];
   
-  // Only show converted leads that have both documents uploaded
-  const readyCustomers = leads.filter((lead: any) => {
-    if (lead.stage !== "converted") return false;
-    const docs = getCustomerDocs(lead.id);
-    return !!(docs?.aadhaar && docs?.drivingLicense);
-  });
+  const bookingVehicleIds = getBookedVehicleIds(bookings);
+
+  const activeBookingCustomerIds = getCustomersWithActiveBookings(bookings);
+  const customerDocs = getAllCustomerDocs();
+
+  const readyCustomers = getAvailableCustomers(leads, customerDocs, activeBookingCustomerIds);
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [open, setOpen] = useState(false);
@@ -81,7 +77,7 @@ const BookingsPage = () => {
   const selectedPlan = rentalPlans.find((plan) => plan.id === selectedPlanId) ?? rentalPlans[0];
 
   const availableVehicles = Array.isArray(vehicles)
-    ? vehicles.filter((v: any) => v?.status === "available")
+    ? getAvailableVehicles(vehicles).filter((v: any) => !bookingVehicleIds.has(getVehicleKey(v)))
     : [];
   const filteredVehicles = availableVehicles.filter((v: any) => v.model === selectedPlan.model);
   const vehicleOptions = filteredVehicles;
@@ -121,16 +117,15 @@ const BookingsPage = () => {
   const getVehicleId = (vehicle: any) => vehicle?._id ?? vehicle?.id ?? "";
   const getVehicleLabel = (vehicle: any) => vehicle ? `${vehicle.model ?? "Unknown"} – ${vehicle.numberPlate ?? vehicle.vehicleId ?? "Unknown"}` : "Unknown vehicle";
 
-  const filtered = useMemo(() => (bookings || []).filter((b) => {
-    const safeBooking = b ?? {};
-    const vehicleText = safeVehicleText(safeBooking.vehicle);
-    const riderName = String(safeBooking.riderName ?? "N/A");
-    const bookingId = String(safeBooking.bookingId ?? safeBooking._id ?? safeBooking.id ?? "");
+  const filtered = useMemo(() => (bookings || []).filter((b: Booking) => {
+    const vehicleText = safeVehicleText(b.vehicle);
+    const riderName = String(b.riderName ?? "N/A");
+    const bookingId = String(b.bookingId ?? b._id ?? b.id ?? "");
     const term = ((search || searchParams.get("query")) ?? "").toLowerCase();
     const matchSearch = !term || riderName.toLowerCase().includes(term) || bookingId.toLowerCase().includes(term) || vehicleText.toLowerCase().includes(term);
-    const matchStatus = statusFilter === "all" || String(safeBooking.status ?? "pending") === statusFilter;
+    const matchStatus = statusFilter === "all" || String(b.status ?? "pending") === statusFilter;
 
-    const startDateStr = safeBooking.startDate ?? safeBooking.start_date ?? safeBooking.createdAt ?? safeBooking.created_at;
+    const startDateStr = b.startDate ?? (b as any).start_date ?? b.createdAt ?? (b as any).created_at;
     let matchDate = true;
     if (range?.start) {
       matchDate = new Date(startDateStr) >= new Date(range.start);
@@ -142,8 +137,11 @@ const BookingsPage = () => {
     let matchRole = true;
     if (role === "staff" && user) {
       try {
-        const vehicleObj = safeBooking.vehicle;
-        const hub = vehicleObj?.hub || (Array.isArray(vehicles) ? (vehicles as any[]).find((v) => (v._id ?? v.id ?? v.vehicleId) === (vehicleObj?._id || vehicleObj))?.hub : undefined);
+        const vehicleObj = b.vehicle;
+        const vehicleId = typeof vehicleObj === "string" ? vehicleObj : vehicleObj?._id ?? vehicleObj?.id ?? vehicleObj?.vehicleId;
+        const hub = typeof vehicleObj === "string"
+          ? (Array.isArray(vehicles) ? (vehicles as any[]).find((v) => (v._id ?? v.id ?? v.vehicleId) === vehicleObj)?.hub : undefined)
+          : vehicleObj?.hub || (Array.isArray(vehicles) ? (vehicles as any[]).find((v) => (v._id ?? v.id ?? v.vehicleId) === (vehicleObj?._id ?? vehicleObj?.id ?? vehicleObj?.vehicleId))?.hub : undefined);
         matchRole = hub ? hub === user.hub : true;
       } catch (e) {
         matchRole = true;
@@ -402,11 +400,11 @@ const BookingsPage = () => {
                 {['ID', 'Rider', 'Vehicle', 'Start', 'End', 'KM', 'Status'].map((h) => (
                   <th key={h} className="text-left px-5 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((b) => {
-                const booking = b ?? {};
+              {filtered.map((booking: Booking) => {
                 const safeBookingId = String(booking.bookingId ?? booking._id ?? booking.id ?? "-");
                 const safeRiderName = String(booking.riderName ?? "N/A");
                 const safePhone = String(booking.phone ?? "-");
@@ -449,6 +447,23 @@ const BookingsPage = () => {
                       <span className="text-muted-foreground">/{safeKmLimit >= 999999 ? "Unlimited" : safeKmLimit}</span>
                     </td>
                     <td className="px-5 py-3 whitespace-nowrap"><StatusBadge status={safeStatus} /></td>
+                    <td className="px-5 py-3 whitespace-nowrap text-right">
+                      {safeStatus !== "completed" ? (
+                        <Button
+                          className="rounded-full px-3 py-1 text-xs"
+                          disabled={Boolean((updateBookingStatus as any).isLoading)}
+                          onClick={() => {
+                            const bookingKey = booking._id ?? booking.id ?? booking.bookingId ?? "";
+                            if (!bookingKey) return;
+                            updateBookingStatus.mutate({ id: bookingKey, status: "completed" });
+                          }}
+                        >
+                          Complete
+                        </Button>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Done</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

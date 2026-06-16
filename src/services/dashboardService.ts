@@ -1,6 +1,7 @@
 import { apiClient, mockOr } from "@/api/client";
 import { DashboardStats } from "@/types";
 import { useStore } from "@/data/store";
+import { getAvailableVehicles } from "@/lib/lifecycle";
 
 export const dashboardService = {
   async getStats(filter?: { start?: string; end?: string }): Promise<DashboardStats> {
@@ -19,7 +20,7 @@ export const dashboardService = {
         const revenue = filteredBookings.reduce((s, b) => s + (Number((b as any).amount ?? (b as any).fare ?? 0) || 0), 0);
         return {
           totalVehicles: vehicles.length,
-          availableVehicles: vehicles.filter((v) => v.status === "available").length,
+          availableVehicles: getAvailableVehicles(vehicles).length,
           deployedVehicles: filteredBookings.filter((b) => (b as any).status === "active").length,
           activeRentals: filteredBookings.filter((b) => (b as any).status === "active").length,
           overdueVehicles: filteredBookings.filter((b) => (b as any).status === "overdue").length,

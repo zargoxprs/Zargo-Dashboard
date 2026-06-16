@@ -89,15 +89,22 @@ export const useStore = create<AppState>((set) => ({
     vehicles: s.vehicles.filter((x) => x.id !== id),
   })),
   addBooking: (b) => set((s) => {
-    const newBookings = [...s.bookings, { ...b, id: `ZRG-${s.bookings.length + 100}`, created_at: new Date().toISOString().split("T")[0] }];
+    const bookingId = `BKG-${s.bookings.length + 100}`;
+    const entry = {
+      ...b,
+      _id: bookingId,
+      bookingId,
+      created_at: new Date().toISOString().split("T")[0],
+    };
+    const newBookings = [...s.bookings, entry];
     const updated = applyBookingStatuses(newBookings);
     // add activity for booking created
-    const activityMsg = `New booking ${b.rider_name ?? b.riderName ?? ""} (${newBookings[newBookings.length - 1].id}) created`;
+    const activityMsg = `New booking ${b.rider_name ?? b.riderName ?? ""} (${bookingId}) created`;
     const newActivity = { id: `ACT-${s.activities.length + 1}`, type: "booking", message: activityMsg, created_at: new Date().toISOString() };
     return { bookings: updated, alerts: generateAlerts(updated, s.alerts), activities: [newActivity, ...s.activities] };
   }),
   updateBookingStatus: (id, status) => set((s) => {
-    const newBookings = s.bookings.map((x) => (x.id === id ? { ...x, status } : x));
+    const newBookings = s.bookings.map((x) => ((x.id === id || x._id === id || x.bookingId === id) ? { ...x, status } : x));
     const updated = applyBookingStatuses(newBookings);
     // when status changes to 'active' or 'overdue' we can add activity
     const msg = `Booking ${id} status updated to ${status}`;

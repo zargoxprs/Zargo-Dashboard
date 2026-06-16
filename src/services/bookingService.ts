@@ -24,7 +24,7 @@ export const bookingService = {
     return mockOr(
       () => {
         useStore.getState().updateBookingStatus(id, status);
-        return useStore.getState().bookings.find((b) => b._id === id)!;
+        return useStore.getState().bookings.find((b) => b._id === id || b.id === id || b.bookingId === id)!;
       },
       async () => (await apiClient.patch<Booking>(`/bookings/${id}`, { status })).data
     );

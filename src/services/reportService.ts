@@ -1,14 +1,15 @@
 import { apiClient, mockOr } from "@/api/client";
-import { ReportSummary, VehicleStatus, BookingStatus } from "@/types";
+import { ReportSummary } from "@/types";
 import { useStore } from "@/data/store";
+import { VEHICLE_STATUSES, BOOKING_STATUSES } from "@/lib/lifecycle";
 
 export const reportService = {
   async getSummary(filter?: { start?: string; end?: string }): Promise<ReportSummary> {
     return mockOr(
       () => {
         const { vehicles, bookings, employees } = useStore.getState();
-        const vStatuses: VehicleStatus[] = ["available", "pdi_pending", "service"];
-        const bStatuses: BookingStatus[] = ["active", "pending", "overdue", "completed"];
+        const vStatuses = VEHICLE_STATUSES;
+        const bStatuses = BOOKING_STATUSES;
 
         // apply optional date filter to bookings
         const filteredBookings = (bookings || []).filter((b: any) => {

@@ -23,7 +23,7 @@ function rangeToFilter(range: ReturnType<typeof useDateFilter>['range']) {
 export const useBookings = () => {
   const { range } = useDateFilter();
   const filter = rangeToFilter(range);
-  return useQuery({
+  return useQuery<Booking[]>({
     queryKey: ["bookings", range],
     queryFn: async () => {
       // use in-memory store for speed when mocking

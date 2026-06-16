@@ -16,7 +16,7 @@ export interface AuthResponse {
   user: User;
 }
 
-export type VehicleStatus = "available" | "pdi_pending" | "service";
+export type VehicleStatus = "pdi_pending" | "ready_for_booking" | "available" | "service";
 
 export interface UploadFile {
   name: string;
@@ -26,6 +26,7 @@ export interface UploadFile {
 export interface PdiChecklistItem {
   label: string;
   done: boolean;
+  evaluated?: boolean;
 }
 
 export interface PdiAuditRecord {
@@ -37,6 +38,7 @@ export interface PdiAuditRecord {
 
 export interface Vehicle {
   _id: string;
+  id?: string;
   vehicleId: string;
   numberPlate: string;
   model: string;
@@ -56,8 +58,8 @@ export interface Vehicle {
 export type BookingStatus = "active" | "completed" | "overdue" | "pending";
 
 export interface Booking {
-
   _id: string;
+  id?: string;
   bookingId: string;
   riderName: string;
   phone: string;
