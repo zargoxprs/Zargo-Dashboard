@@ -61,6 +61,8 @@ export interface Booking {
   _id: string;
   id?: string;
   bookingId: string;
+  customerId?: string;
+  vehicleId?: string;
   riderName: string;
   phone: string;
   vehicle: string | Vehicle;
@@ -70,6 +72,8 @@ export interface Booking {
   kmLimit: number;
   status: BookingStatus;
   amount: number;
+  amountPaid: number;
+  planType: string;
   createdAt: string;
   updatedAt: string;
 }

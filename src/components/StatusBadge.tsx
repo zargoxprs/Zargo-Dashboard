@@ -4,6 +4,7 @@ const colorMap: Record<string, string> = {
   active: "bg-primary/15 text-primary",
   available: "bg-success/15 text-success",
   "ready_for_booking": "bg-primary/15 text-primary",
+  booked: "bg-primary/15 text-primary",
   completed: "bg-success/15 text-success",
   assigned: "bg-primary/15 text-primary",
   "in-progress": "bg-warning/15 text-warning",
@@ -29,6 +30,7 @@ const colorMap: Record<string, string> = {
 const labelMap: Record<string, string> = {
   pdi_pending: "PDI Pending",
   ready_for_booking: "Ready For Booking",
+  booked: "Booked",
   idle: "Idle",
 };
 

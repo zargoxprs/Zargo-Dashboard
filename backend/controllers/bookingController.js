@@ -13,9 +13,9 @@ exports.get = async (req, res, next) => {
 };
 exports.create = async (req, res, next) => {
   try {
-
     const payload = {
       ...req.body,
+      customerId: req.body.customerId,
       bookingId: req.body.bookingId || `BKG-${Date.now()}`,
     };
     const item = await Booking.create(payload);

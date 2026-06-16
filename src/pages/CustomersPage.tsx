@@ -9,8 +9,9 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { TableSkeleton } from "@/components/states/LoadingSkeleton";
 import StatCard from "@/components/StatCard";
 import { useLeads } from "@/hooks/useLeads";
+import { useBookings } from "@/hooks/useBookings";
 import { Lead } from "@/types";
-import { getCustomerDocs, saveCustomerDocs, hasCustomerDocs } from "@/lib/lifecycle";
+import { getCustomerDocs, saveCustomerDocs, hasCustomerDocs, getCustomersWithActiveBookings } from "@/lib/lifecycle";
 
 const emptyCustomerForm = {
   customerName: "",
@@ -21,6 +22,7 @@ const normalizePhone = (phone: string) => phone.replace(/[^0-9]/g, "");
 
 const CustomersPage = () => {
   const leadsQ = useLeads();
+  const bookingsQ = useBookings({ ignoreRange: true });
 
   const [query, setQuery] = useState("");
   const [customerForm, setCustomerForm] = useState(emptyCustomerForm);
@@ -32,6 +34,7 @@ const CustomersPage = () => {
   const [uploadDlFile, setUploadDlFile] = useState<File | null>(null);
 
   const leads = Array.isArray(leadsQ.data) ? leadsQ.data : [];
+  const bookings = Array.isArray(bookingsQ.data) ? bookingsQ.data : [];
 
   // Derive customers from leads where stage === "Converted"
   const convertedLeads = leads.filter((lead) => lead.stage === "converted");
@@ -85,7 +88,20 @@ const CustomersPage = () => {
     if (sanitized) window.open(`tel:${sanitized}`, "_self");
   };
 
-  const readyCount = convertedLeads.filter((lead) => hasCustomerDocs(getCustomerDocs(lead.id))).length;
+  const activeBookingCustomerIds = getCustomersWithActiveBookings(bookings);
+  const readyLeads = convertedLeads.filter((lead) =>
+    hasCustomerDocs(getCustomerDocs(lead.id)) &&
+    !activeBookingCustomerIds.has(lead.id)
+  );
+  const bookedLeads = convertedLeads.filter((lead) =>
+    hasCustomerDocs(getCustomerDocs(lead.id)) &&
+    activeBookingCustomerIds.has(lead.id)
+  );
+  const pendingLeads = convertedLeads.filter((lead) => !hasCustomerDocs(getCustomerDocs(lead.id)));
+
+  const readyCount = readyLeads.length;
+  const bookedCount = bookedLeads.length;
+  const pendingCount = pendingLeads.length;
 
   const formatDate = (date: string) => {
     try {
@@ -119,10 +135,11 @@ const CustomersPage = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-4">
             <StatCard title="Total Customers (from leads)" value={convertedLeads.length} icon={<Search size={18} />} />
             <StatCard title="Ready for Booking" value={readyCount} icon={<Search size={18} />} accent="success" />
-            <StatCard title="Pending Documents" value={convertedLeads.length - readyCount} icon={<Search size={18} />} accent="warning" />
+            <StatCard title="Booked" value={bookedCount} icon={<Search size={18} />} accent="primary" />
+            <StatCard title="Pending Documents" value={pendingCount} icon={<Search size={18} />} accent="warning" />
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -159,7 +176,9 @@ const CustomersPage = () => {
                           const docs = getCustomerDocs(lead.id);
                           const hasAadhaar = Boolean(docs?.aadhaar?.url);
                           const hasDl = Boolean(docs?.drivingLicense?.url);
-                          const overall = hasCustomerDocs(docs) ? "ready for booking" : "pending";
+                          const hasDocs = hasCustomerDocs(docs);
+                          const isBooked = hasDocs && activeBookingCustomerIds.has(lead.id);
+                          const overall = !hasDocs ? "pending" : isBooked ? "booked" : "ready for booking";
                           return (
                             <tr key={lead.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                               <td className="px-5 py-3 font-medium">{lead.customerName}</td>

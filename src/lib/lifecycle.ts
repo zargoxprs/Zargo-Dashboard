@@ -24,8 +24,8 @@ export const getBookedVehicleIds = (bookings: Booking[]) => new Set(bookings
 
 export const getCustomersWithActiveBookings = (bookings: Booking[]) => new Set(
   bookings
-    .filter((b) => b.status === "active")
-    .map((b) => (b as any).riderId ?? (b as any).customerId ?? "")
+    .filter((b) => b.status === "active" && b.customerId)
+    .map((b) => String(b.customerId).trim())
     .filter(Boolean)
 );
 
@@ -58,12 +58,11 @@ export const hasCustomerDocs = (docs?: { aadhaar?: UploadFile; drivingLicense?: 
 export const VEHICLE_STATUSES: VehicleStatus[] = ["pdi_pending", "ready_for_booking", "available", "service"];
 export const BOOKING_STATUSES: BookingStatus[] = ["active", "pending", "overdue", "completed"];
 
-export const getAvailableCustomers = (
-  leads: Lead[],
-  docs: CustomerDocsMap,
-  activeBookingCustomerIds: Set<string>
-) => leads.filter((lead) =>
-  lead.stage === "converted" &&
-  !activeBookingCustomerIds.has(lead.id) &&
-  hasCustomerDocs(docs[lead.id])
-);
+export const getAvailableCustomers = (leads: Lead[], bookings: Booking[]) => {
+  const activeBookingCustomerIds = getCustomersWithActiveBookings(bookings);
+  return leads.filter((lead) =>
+    lead.stage === "converted" &&
+    !activeBookingCustomerIds.has(lead.id) &&
+    hasCustomerDocs(getCustomerDocs(lead.id))
+  );
+};

@@ -10,7 +10,6 @@ import StatusBadge from "@/components/StatusBadge";
 import { EmptyState } from "@/components/states/EmptyState";
 import { TableSkeleton } from "@/components/states/LoadingSkeleton";
 import StatCard from "@/components/StatCard";
-import { leads as sampleLeads } from "@/data/workflows";
 import { Lead, LeadStage } from "@/types";
 import { useCreateLead, useLeads, useUpdateLead } from "@/hooks/useLeads";
 import { useCreateCustomer } from "@/hooks/useCustomers";
@@ -55,8 +54,7 @@ const LeadsPage = () => {
   const [statusValue, setStatusValue] = useState<LeadStage>("new");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // fallback to static sample leads when API is not available
-  const leads = leadsQ.data ?? sampleLeads;
+  const leads = Array.isArray(leadsQ.data) ? leadsQ.data : [];
 
   const filtered = useMemo(
     () => leads.filter((lead) => {

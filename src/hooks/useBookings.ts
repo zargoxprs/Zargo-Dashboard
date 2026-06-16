@@ -6,6 +6,7 @@ import { useStore } from "@/data/store";
 import { useDateFilter } from "@/context/DateFilterContext";
 
 const KEY = ["bookings"];
+const ALL_BOOKINGS_KEY = ["bookings", "all"];
 
 function rangeToFilter(range: ReturnType<typeof useDateFilter>['range']) {
   if (!range) return undefined;
@@ -20,11 +21,11 @@ function rangeToFilter(range: ReturnType<typeof useDateFilter>['range']) {
   }
 }
 
-export const useBookings = () => {
+export const useBookings = ({ ignoreRange = false } = {}) => {
   const { range } = useDateFilter();
-  const filter = rangeToFilter(range);
+  const filter = ignoreRange ? undefined : rangeToFilter(range);
   return useQuery<Booking[]>({
-    queryKey: ["bookings", range],
+    queryKey: ignoreRange ? ALL_BOOKINGS_KEY : ["bookings", range],
     queryFn: async () => {
       // use in-memory store for speed when mocking
       const list = await bookingService.list();
@@ -46,6 +47,7 @@ export const useAddBooking = () => {
     mutationFn: (payload: Omit<Booking, "_id" | "createdAt" | "updatedAt">) => bookingService.create(payload),
     onSuccess: (b) => {
       qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ALL_BOOKINGS_KEY });
       qc.invalidateQueries({ queryKey: ["vehicles"] });
       qc.invalidateQueries({ queryKey: ["alerts"] });
       qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
@@ -75,6 +77,7 @@ export const useUpdateBookingStatus = () => {
       bookingService.updateStatus(id, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ALL_BOOKINGS_KEY });
       qc.invalidateQueries({ queryKey: ["alerts"] });
     },
   });

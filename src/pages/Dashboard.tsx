@@ -43,7 +43,7 @@ const Dashboard = () => {
   const renewalFollowups = renewals.filter((r) => ["upcoming", "overdue"].includes(r.status)).length;
   const openServiceJobs = serviceJobs.filter((job) => job.status !== "completed").length;
   const activeAssignedBookings = bookings.filter((b: any) => {
-    const isActive = (b.status ?? "").toLowerCase() !== "completed";
+    const isActive = String(b.status ?? "").toLowerCase() === "active";
     const handler = String((b as any).assignedTo ?? (b as any).assignedStaff ?? (b as any).handledBy ?? "").toLowerCase();
     const isAssignedToMe = handler && handler === (user?.name ?? "").toLowerCase();
     const isInMyHub = user?.hub && String((b as any).hub ?? (b.vehicle as any)?.hub ?? "").toLowerCase() === user.hub.toLowerCase();
@@ -56,7 +56,7 @@ const Dashboard = () => {
   const assignedTasks = taskQueue.filter((task) => task.assignedTo.toLowerCase() === (user?.name ?? "").toLowerCase());
   const pendingPrdTasks = assignedTasks.filter((task) => task.status === "awaiting-approval").length;
   const unreadAlerts = alerts.filter((a) => a.status === "unread").length;
-  const activeBookings = bookings.filter((b) => b.status !== "completed");
+  const activeBookings = bookings.filter((b) => b.status === "active");
 
   const myBookings = bookings.filter((b: any) => {
     const handler = String((b as any).assignedTo ?? (b as any).assignedStaff ?? (b as any).handledBy ?? "").toLowerCase();
@@ -262,7 +262,7 @@ const Dashboard = () => {
             <ErrorState message="Failed to load stats" onRetry={() => statsQ.refetch()} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard title="Active Rentals" value={stats.deployedVehicles} icon={CalendarDays} accent="primary" subtitle="Currently booked" />
+              <StatCard title="Active Rentals" value={activeBookings.length} icon={CalendarDays} accent="primary" subtitle="Currently booked" />
               <StatCard title="Monthly Revenue" value={formatRevenue(monthlyRevenue)} icon={CreditCard} accent="primary" subtitle="Revenue generated during selected date range" />
               <StatCard title="Available Vehicles" value={stats.availableVehicles} icon={Battery} accent="success" subtitle="Ready for dispatch" />
               <StatCard title="Pending Returns" value={returnWorkflows.filter((r) => !r.accountClosed).length} icon={ArrowLeftRight} accent="accent" subtitle="Needs attention" />

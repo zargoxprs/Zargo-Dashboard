@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const BookingSchema = new mongoose.Schema(
   {
     bookingId: { type: String, required: true, unique: true, trim: true },
+    customerId: { type: String, trim: true },
     riderName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
     vehicle: { type: mongoose.Schema.Types.ObjectId, ref: "Vehicle", required: true },
@@ -12,6 +13,8 @@ const BookingSchema = new mongoose.Schema(
     kmLimit: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "completed", "overdue", "pending"], default: "pending" },
     amount: { type: Number, default: 0 },
+    amountPaid: { type: Number, default: 0 },
+    planType: { type: String, trim: true, default: "" },
     paymentMethod: { type: String, enum: ["Cash", "Online"], default: "Cash" },
     referenceNumber: { type: String, trim: true, default: "" },
   },
