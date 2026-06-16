@@ -4,6 +4,8 @@ export const leads: Lead[] = [
   { id: "Ld001", customerName: "Amit Patel", contact: "+91 98765 43210", source: "Website", stage: "contacted", assignedTo: "Ravi", createdAt: "2026-05-18" },
   { id: "Ld002", customerName: "Nisha Gupta", contact: "+91 91234 56789", source: "Referral", stage: "qualified", assignedTo: "Meera", createdAt: "2026-05-22" },
   { id: "Ld003", customerName: "Rohan Singh", contact: "+91 99887 77665", source: "Walk-in", stage: "new", assignedTo: "Ravi", createdAt: "2026-05-28" },
+  { id: "Ld004", customerName: "Priya Sharma", contact: "+91 88776 55443", source: "Phone Inquiry", stage: "converted", assignedTo: "Meera", createdAt: "2026-06-01" },
+  { id: "Ld005", customerName: "Vikram Rao", contact: "+91 77665 54321", source: "Referral", stage: "converted", assignedTo: "Ravi", createdAt: "2026-06-02" },
 ];
 
 export const onboardings: OnboardingWorkflow[] = [

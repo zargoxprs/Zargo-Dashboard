@@ -1,5 +1,6 @@
 ﻿import { useState, useMemo } from "react";
 import { useBookings, useAddBooking } from "@/hooks/useBookings";
+import { useLeads } from "@/hooks/useLeads";
 import { useVehicles } from "@/hooks/useVehicles";
 import StatusBadge from "@/components/StatusBadge";
 import { Plus, Search, CalendarDays, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
@@ -14,6 +15,18 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { useDateFilter } from "@/context/DateFilterContext";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+
+const CUSTOMER_DOCS_KEY = "zargo_customer_docs";
+
+const getCustomerDocs = (leadId: string): { aadhaar?: any; drivingLicense?: any } => {
+  try {
+    const stored = localStorage.getItem(CUSTOMER_DOCS_KEY);
+    const allDocs = stored ? JSON.parse(stored) : {};
+    return allDocs[leadId] ?? {};
+  } catch {
+    return {};
+  }
+};
 
 type BookingStatus = "active" | "completed" | "overdue" | "pending";
 
@@ -44,6 +57,17 @@ const BookingsPage = () => {
   const bookings = Array.isArray(bookingsQ.data) ? bookingsQ.data : [];
   const { data: vehicles = [] } = useVehicles();
   const addBooking = useAddBooking();
+  const leadsQ = useLeads();
+  const leads = Array.isArray(leadsQ.data) ? leadsQ.data : [];
+  
+  // Only show converted leads that have both documents uploaded
+  const readyCustomers = leads.filter((lead: any) => {
+    if (lead.stage !== "converted") return false;
+    const docs = getCustomerDocs(lead.id);
+    return !!(docs?.aadhaar && docs?.drivingLicense);
+  });
+  
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -186,13 +210,26 @@ const BookingsPage = () => {
             <DialogHeader><DialogTitle>Add Booking</DialogTitle></DialogHeader>
             <div className="overflow-y-auto flex-1 px-6">
               <div className="space-y-6 py-4">
-                {/* Rider Details */}
+                {/* Rider Details - select only customers ready for booking */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-foreground">Rider Details</h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label>Rider Name</Label>
-                      <Input placeholder="e.g. Rahul Sharma" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
+                      <Label>Customer</Label>
+                      <Select value={selectedCustomerId} onValueChange={(value) => {
+                        setSelectedCustomerId(value);
+                        const c = readyCustomers.find((x: any) => x.id === value);
+                        if (c) setForm({ ...form, riderName: c.customerName, phone: c.contact });
+                      }}>
+                        <SelectTrigger><SelectValue placeholder={readyCustomers.length ? "Select customer" : "No ready customers"} /></SelectTrigger>
+                        <SelectContent>
+                          {readyCustomers.length ? readyCustomers.map((c: any) => (
+                            <SelectItem key={c.id} value={c.id}>{c.customerName} · {c.contact}</SelectItem>
+                          )) : (
+                            <SelectItem value="no-customer" disabled>No customers ready for booking</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
                       {errors.riderName && <p className="text-xs text-destructive">{errors.riderName}</p>}
                     </div>
                     <div className="space-y-1.5">
