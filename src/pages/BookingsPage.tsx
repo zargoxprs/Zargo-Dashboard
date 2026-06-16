@@ -207,7 +207,7 @@ const BookingsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Booking</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage rider bookings and assignments</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
