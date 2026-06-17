@@ -45,11 +45,19 @@ const VehiclesPage = () => {
 
   const handleSubmit = () => {
     const newErrors: Record<string, string> = {};
+    const normalizedId = form.vehicleId.trim().toLowerCase();
+    const normalizedPlate = form.numberPlate.trim().toLowerCase();
 
     if (!form.vehicleId.trim()) newErrors.vehicleId = "Vehicle ID is required";
     if (!form.numberPlate.trim()) newErrors.numberPlate = "Vehicle number is required";
     if (!form.model) newErrors.model = "Model is required";
     if (!form.hub) newErrors.hub = "Hub is required";
+    if (normalizedId && vehicles.some((v) => v.vehicleId.toLowerCase() === normalizedId)) {
+      newErrors.vehicleId = "Vehicle ID already exists";
+    }
+    if (normalizedPlate && vehicles.some((v) => v.numberPlate.toLowerCase() === normalizedPlate)) {
+      newErrors.numberPlate = "Number plate already exists";
+    }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 

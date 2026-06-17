@@ -79,6 +79,8 @@ export const useUpdateBookingStatus = () => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ALL_BOOKINGS_KEY });
       qc.invalidateQueries({ queryKey: ["alerts"] });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
   });
 };

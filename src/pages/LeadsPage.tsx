@@ -83,9 +83,13 @@ const LeadsPage = () => {
 
   const handleCreateLead = () => {
     const nextErrors: Record<string, string> = {};
+    const normalizedContact = normalizePhone(leadForm.contact);
     if (!leadForm.customerName.trim()) nextErrors.customerName = "Customer name is required";
-    if (!normalizePhone(leadForm.contact)) nextErrors.contact = "A valid phone is required";
+    if (!normalizedContact) nextErrors.contact = "A valid phone is required";
     if (!leadForm.assignedTo.trim()) nextErrors.assignedTo = "Assign a staff member to follow up";
+    if (normalizedContact && leads.some((lead) => normalizePhone(lead.contact) === normalizedContact)) {
+      nextErrors.contact = "A lead with this phone is already registered";
+    }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -99,7 +103,14 @@ const LeadsPage = () => {
 
   const handleUpdateStatus = () => {
     if (!selectedLead) return;
-    
+    const duplicateConverted = statusValue === "converted" && leads.some(
+      (lead) => lead.id !== selectedLead.id && lead.stage === "converted" && normalizePhone(lead.contact) === normalizePhone(selectedLead.contact)
+    );
+    if (duplicateConverted) {
+      setErrors({ status: "A customer with this contact is already converted." });
+      return;
+    }
+
     // If changing to "converted", automatically create a customer record
     if (statusValue === "converted" && selectedLead.stage !== "converted") {
       createCustomer.mutate(
